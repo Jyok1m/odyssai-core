@@ -1,0 +1,22 @@
+[project]
+name = "odyssai-core"
+version = "0.1.0"
+description = "Core AI module of the Odyssai project"
+authors = [
+  { name = "Joachim Jasmin", email = "joachim.jasmin-dev@proton.me" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "openai",
+  "langchain",
+  "chromadb",
+  "pydantic"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"

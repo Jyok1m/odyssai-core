@@ -17,7 +17,6 @@ dependencies:
   - audioread=3.0.1=py312h81bd7bf_2
   - backoff=2.2.1=pyhd8ed1ab_1
   - bcrypt=4.3.0=py312hd3c0895_1
-  - black=25.1.0=pyh866005b_0
   - blinker=1.9.0=pyhff2d567_0
   - brotli=1.1.0=h5505292_3
   - brotli-bin=1.1.0=h5505292_3
@@ -222,7 +221,6 @@ dependencies:
   - p11-kit=0.24.1=h29577a5_0
   - packaging=25.0=pyh29332c3_1
   - parso=0.8.4=pyhd8ed1ab_1
-  - pathspec=0.12.1=pyhd8ed1ab_1
   - pcre2=10.45=ha881caa_0
   - pexpect=4.9.0=pyhd8ed1ab_1
   - pickleshare=0.7.5=pyhd8ed1ab_1004

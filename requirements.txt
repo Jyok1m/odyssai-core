@@ -10,7 +10,6 @@ attrs @ file:///home/conda/feedstock_root/build_artifacts/attrs_1741918516150/wo
 audioread @ file:///Users/runner/miniforge3/conda-bld/audioread_1725357508302/work
 backoff @ file:///home/conda/feedstock_root/build_artifacts/backoff_1733771078379/work
 bcrypt @ file:///Users/runner/miniforge3/conda-bld/bld/rattler-build_bcrypt_1749234491/work
-black @ file:///home/conda/feedstock_root/build_artifacts/black-recipe_1742502750715/work
 blinker @ file:///home/conda/feedstock_root/build_artifacts/blinker_1731096409132/work
 Brotli @ file:///Users/runner/miniforge3/conda-bld/brotli-split_1749229914644/work
 build @ file:///home/conda/feedstock_root/build_artifacts/python-build_1733230610871/work
@@ -126,7 +125,6 @@ ormsgpack==1.10.0
 overrides @ file:///home/conda/feedstock_root/build_artifacts/overrides_1734587627321/work
 packaging @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_packaging_1745345660/work
 parso @ file:///home/conda/feedstock_root/build_artifacts/parso_1733271261340/work
-pathspec @ file:///home/conda/feedstock_root/build_artifacts/pathspec_1733233363808/work
 pexpect @ file:///home/conda/feedstock_root/build_artifacts/pexpect_1733301927746/work
 pickleshare @ file:///home/conda/feedstock_root/build_artifacts/pickleshare_1733327343728/work
 pillow @ file:///Users/runner/miniforge3/conda-bld/pillow_1751482098407/work

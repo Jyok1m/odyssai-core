@@ -1,4 +1,4 @@
-from .workflows.retrieve_context_graph import build_context_graph
+from .workflows.context_graph import build_context_graph
 
 
 def main():

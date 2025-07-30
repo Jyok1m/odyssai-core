@@ -1,0 +1,21 @@
+# Environnement
+.env
+.venv/
+*.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# OS
+.DS_Store
+
+# Conda
+conda-meta/
+*.lock
+
+# Tests & coverage
+.coverage
+htmlcov/

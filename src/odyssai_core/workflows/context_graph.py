@@ -5,7 +5,7 @@ from langchain_chroma import Chroma
 from langchain_core.runnables import RunnableLambda
 from langchain_core.documents import Document
 from langgraph.graph import StateGraph, END
-
+from langsmith import traceable
 from typing_extensions import TypedDict, Literal, Required, NotRequired, cast
 from ..config.settings import CHROMA_API_KEY, CHROMA_TENANT, CHROMA_DATABASE
 
@@ -30,6 +30,7 @@ class State(TypedDict):
 # ------------------------------------------------------------------ #
 
 
+@traceable(name="get_context_docs_from_collection")
 def get_context_docs_from_collection(state: State) -> State:
     db_collection = Chroma(
         client=CHROMA_DB_CLIENT,
@@ -64,7 +65,7 @@ def get_context_docs_from_collection(state: State) -> State:
 
 def build_context_graph():
     graph = StateGraph(State)
-    graph.add_node("respond", RunnableLambda(get_context_docs_from_collection))
-    graph.set_entry_point("respond")
-    graph.add_edge("respond", END)
+    graph.add_node("retrieve_context", RunnableLambda(get_context_docs_from_collection))
+    graph.set_entry_point("retrieve_context")
+    graph.add_edge("retrieve_context", END)
     return graph.compile()

@@ -1,3 +1,4 @@
+import os
 from .workflows.context_graph import build_context_graph
 
 
@@ -5,8 +6,9 @@ def main():
     print("Welcome to Odyssai Core v0.1.0 \n")
 
     def get_context():
-        graph = build_context_graph()
         context_type = "lore"
+        os.environ["LANGCHAIN_PROJECT"] = f"odyssai-{context_type}-context"
+        graph = build_context_graph()
 
         result = graph.invoke(
             {

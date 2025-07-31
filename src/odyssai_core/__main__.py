@@ -1,5 +1,6 @@
 import os
 from .workflows.context_graph import build_context_graph
+from .workflows.world_graph import world_creation_graph
 
 
 def main():
@@ -22,7 +23,18 @@ def main():
         print("Combined résumé : \n")
         print(result[f"{context_type}_context"])
 
-    get_context()
+    def generate_world():
+        os.environ["LANGCHAIN_PROJECT"] = "odyssai-world-creation"
+        graph = world_creation_graph()
+
+        result = graph.invoke(
+            {"story_directives": "Cypberpunk universe.", "world_name": "Elysia"}
+        )
+        return result
+        # print(result)
+
+    # get_context()
+    generate_world()
 
 
 if __name__ == "__main__":

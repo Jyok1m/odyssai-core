@@ -28,10 +28,6 @@ class QuestionState(TypedDict):
 #                              FUNCTIONS                             #
 # ------------------------------------------------------------------ #
 
-# ask_question()
-# collect_answer()
-# should_continue()
-
 
 def ask_question(state: QuestionState) -> QuestionState:
     """Function to a ask a question to the player based on a list of dict with format [{ "key": "value" }]."""
@@ -39,13 +35,8 @@ def ask_question(state: QuestionState) -> QuestionState:
     q_index = state.get("question_index", 0)
     question = WORLD_BULDING_QUESTIONS[q_index]["value"]
 
-    updated_state: QuestionState = {
-        **state,
-        "current_question": question,
-    }
-
     print(f"Q: {question}")
-    return updated_state
+    return {**state, "current_question": question}
 
 
 def collect_answer(state: QuestionState) -> QuestionState:
@@ -59,13 +50,12 @@ def collect_answer(state: QuestionState) -> QuestionState:
     state_responses = state.get("responses", {})
     state_responses[key] = response
 
-    updated_state: QuestionState = {
+    return {
+        **state,
         "responses": state_responses,
         "current_question": "",
         "question_index": q_index + 1,
     }
-
-    return updated_state
 
 
 def should_continue(state: QuestionState) -> Literal["__continue__", "__end__"]:

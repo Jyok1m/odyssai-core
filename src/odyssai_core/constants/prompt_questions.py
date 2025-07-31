@@ -3,14 +3,14 @@
 WORLD_BULDING_QUESTIONS = [
     {
         "key": "world_name",
-        "value": "What is the name of the world you would like to adventure in?",
+        "value": "What would be the name of the world you would like to adventure in?",
     },
     {
-        "key": "world_setting",
-        "value": "What is the overall setting or atmosphere of this world? (e.g., medieval, cyberpunk, post-apocalyptic...)",
+        "key": "world_genre",
+        "value": "What would be its genre? (e.g., medieval, cyberpunk, fantasy, realistic...)",
     },
     {
         "key": "story_directives",
-        "value": "Do you have any specific narrative directives or themes you'd like the story to follow? (e.g., rebellion, survival, exploration...)",
+        "value": "Do you have any specific narrative directives or themes you'd like the story to follow? (e.g., rebellion, survival, I want a story based on bond creation, friendship and alliances...)",
     },
 ]

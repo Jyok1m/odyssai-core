@@ -1,8 +1,6 @@
 import re
 import tiktoken
-
-# Modèle utilisé
-LLM_NAME = "gpt-4o"
+from ..constants.llm_models import LLM_NAME
 
 # Limites de tokens pour un coût < $0.10
 MAX_TOTAL_TOKENS = 20_000
@@ -17,13 +15,13 @@ def truncate_flat_text(text: str, max_tokens: int, enc) -> str:
     return enc.decode(enc.encode(text)[:max_tokens])
 
 
-def truncate_structured_prompt(prompt: str, model: str = LLM_NAME) -> str:
+def truncate_structured_prompt(prompt: str) -> str:
     """
     Troncature d’un prompt structuré en blocs ## Title sans dépasser la limite GPT-4o.
     Chaque bloc garde au moins MIN_TOKENS_PER_SECTION tokens si possible.
     """
 
-    enc = tiktoken.encoding_for_model(model)
+    enc = tiktoken.encoding_for_model(LLM_NAME)
 
     # Découpe en sections de type ## Title
     section_pattern = re.compile(r"(## .+?\n)(.*?)(?=\n## |\Z)", re.DOTALL)

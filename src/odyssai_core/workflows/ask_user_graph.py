@@ -18,6 +18,7 @@ TTS_ENABLED = True
 
 
 class QuestionState(TypedDict):
+    # Optional as inputs:
     responses: NotRequired[dict[str, str]]
     current_question: NotRequired[str]
     question_index: NotRequired[int]
@@ -43,14 +44,14 @@ def ask_question(state: QuestionState) -> QuestionState:
         "current_question": question,
     }
 
-    print(f"Q: {question}\n")
+    print(f"Q: {question}")
     return updated_state
 
 
 def collect_answer(state: QuestionState) -> QuestionState:
     """Function to collect the input from the player and add the response to a dict collector."""
 
-    response = input("Answer: ").strip()
+    response = input("A: ").strip()
 
     q_index = state.get("question_index", 0)
     key = WORLD_BULDING_QUESTIONS[q_index]["key"]

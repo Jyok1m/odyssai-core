@@ -2,7 +2,7 @@ import re
 import tiktoken
 from ..constants.llm_models import LLM_NAME
 
-# Limites de tokens pour un coût < $0.10
+# Limites de tokens pour un coût < 0.10€
 MAX_TOTAL_TOKENS = 20_000
 RESERVED_FOR_OUTPUT = 5_000
 MAX_INPUT_TOKENS = MAX_TOTAL_TOKENS - RESERVED_FOR_OUTPUT

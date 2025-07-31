@@ -78,11 +78,11 @@ def create_world(state: WorldState) -> WorldState:
     {
         "page_content": string (short descriptive paragraph introducing the world),
         "metadata": {
-            "world_name": {{world_name}},
+            "world_name": "{{world_name}}",
             "genre": "string" (e.g. 'fantasy', 'sci-fi', 'dark fantasy' etc... based on the genre: {{world_genre}}),
             "dominant_species": "string" (e.g. 'humans', 'elves', 'androids' etc...),
             "magic_presence": True or False (whether magic exists in the world),
-            "governance": "string (e.g. 'monarchy', 'anarchy', 'federation' etc...)"
+            "governance": "string" (e.g. 'monarchy', 'anarchy', 'federation' etc...)
         }
     }
     """
@@ -98,7 +98,7 @@ def create_world(state: WorldState) -> WorldState:
 
     llm_model = ChatOpenAI(
         model=LLM_NAME,
-        temperature=1.4,
+        temperature=0.7,
         streaming=False,
         max_retries=2,
     )

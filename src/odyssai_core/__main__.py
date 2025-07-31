@@ -1,6 +1,7 @@
 import os
 from .workflows.ask_user_graph import ask_user_graph, QuestionState
 from .workflows.world_graph import world_creation_graph
+from .workflows.lore_graph import lore_graph
 from .workflows.context_graph import build_context_graph
 
 
@@ -18,10 +19,10 @@ def generate_world():
         }
     )
 
-    print("Job done! World created with data: \n")
+    # Create the lore
+    result_3 = lore_graph.invoke({"world_id": result_2["world_id"]})
 
-    print(f"World Name: {result_2['world_name']}")
-    print(f"World ID: {result_2['world_id']}")
+    print("Job done! Lore created.")
 
 
 def main():

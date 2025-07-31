@@ -25,17 +25,27 @@ CHROMA_DB_CLIENT = chromadb.CloudClient(CHROMA_TENANT, CHROMA_DATABASE, CHROMA_A
 # WorldState
 class WorldState(TypedDict):
     world_name: Required[str]
-    world_setting: Required[str]
-    story_directives: Required[str]
+
     # Optional as inputs:
     world_id: NotRequired[str]
+    world_setting: NotRequired[str]
+    story_directives: NotRequired[str]
     llm_dict: NotRequired[dict[str, str]]
     lc_document: NotRequired[Document]
+    world_already_exists: NotRequired[bool]
 
 
 # ------------------------------------------------------------------ #
 #                              FUNCTIONS                             #
 # ------------------------------------------------------------------ #
+
+
+def check_world_exists(state: WorldState) -> str:
+    if state.get("world_already_exists", False):
+        print("World already exists, skipping creation.")
+        return "__end__"
+    print("World does not exist, proceeding with creation.")
+    return "__continue__"
 
 
 def get_world_id(state: WorldState) -> WorldState:
@@ -52,16 +62,12 @@ def get_world_id(state: WorldState) -> WorldState:
 
     if len(result["ids"]) > 0:
         world_id = result["ids"][0]
+        state["world_already_exists"] = True
     else:
         world_id = str(uuid4())
 
-    updated_state: WorldState = {
-        **state,
-        "world_id": world_id,
-    }
-
     print("World ID retrieved or created. Moving on...")
-    return updated_state
+    return {**state, "world_id": world_id}
 
 
 def create_world(state: WorldState) -> WorldState:
@@ -98,12 +104,13 @@ def create_world(state: WorldState) -> WorldState:
     }
     """
 
-    truncated_prompt = truncate_structured_prompt(prompt_template)
-    prompt = PromptTemplate.from_template(truncated_prompt, template_format="jinja2")
+    prompt = PromptTemplate.from_template(prompt_template, template_format="jinja2")
     formatted_prompt = prompt.format(
         world_name=state["world_name"],
-        world_genre=state["world_setting"],
-        story_directives=state["story_directives"],
+        world_genre=state.get("world_setting", "fantasy"),
+        story_directives=state.get(
+            "story_directives", "No specific directives provided."
+        ),
     )
     truncated_prompt = truncate_structured_prompt(formatted_prompt)
     llm_model = ChatOpenAI(
@@ -120,13 +127,9 @@ def create_world(state: WorldState) -> WorldState:
         llm_response = str(raw_output)
 
     llm_dict: dict[str, str] = ast.literal_eval(llm_response)
-    updated_state: WorldState = {
-        **state,
-        "llm_dict": llm_dict,
-    }
 
     print("World dictionary data created successfully. Moving on...")
-    return updated_state
+    return {**state, "llm_dict": llm_dict}
 
 
 def convert_to_langchain_document(state: WorldState) -> WorldState:
@@ -141,13 +144,8 @@ def convert_to_langchain_document(state: WorldState) -> WorldState:
         metadata=llm_dict.get("metadata", {}),
     )
 
-    updated_state: WorldState = {
-        **state,
-        "lc_document": lc_document,
-    }
-
     print("Conversion to LangChain Document completed successfully. Moving on...")
-    return updated_state
+    return {**state, "lc_document": lc_document}
 
 
 def save_document_to_chroma(state: WorldState) -> WorldState:
@@ -169,7 +167,7 @@ def save_document_to_chroma(state: WorldState) -> WorldState:
         db_collection.add_documents([lc_document], ids=[document_id])
 
     print("Document saved to Chroma database successfully.")
-    return state
+    return {**state}
 
 
 # ------------------------------------------------------------------ #
@@ -185,7 +183,9 @@ graph.add_node("convert_to_langchain_document", convert_to_langchain_document)
 graph.add_node("save_document_to_chroma", save_document_to_chroma)
 
 graph.set_entry_point("get_world_id")
-graph.add_edge("get_world_id", "create_world")
+graph.add_conditional_edges(
+    "get_world_id", check_world_exists, {"__continue__": "create_world", "__end__": END}
+)
 graph.add_edge("create_world", "convert_to_langchain_document")
 graph.add_edge("convert_to_langchain_document", "save_document_to_chroma")
 graph.add_edge("save_document_to_chroma", END)

@@ -17,8 +17,11 @@ def generate_world():
             "world_setting": user_answers.get("world_setting", ""),
         }
     )
-    world_creation_result = result_2["lc_document"]
-    print(world_creation_result)
+
+    print("Job done! World created with data: \n")
+
+    print(f"World Name: {result_2['world_name']}")
+    print(f"World ID: {result_2['world_id']}")
 
 
 def main():

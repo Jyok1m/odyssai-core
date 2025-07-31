@@ -39,6 +39,9 @@ class WorldState(TypedDict):
 
 
 def get_world_id(state: WorldState) -> WorldState:
+    """Retrieve or create a unique world ID based on the world name."""
+    print("Retrieving or creating world ID...")
+
     db_collection = Chroma(
         client=CHROMA_DB_CLIENT,
         embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
@@ -57,10 +60,15 @@ def get_world_id(state: WorldState) -> WorldState:
         "world_id": world_id,
     }
 
+    print("World ID retrieved or created. Moving on...")
     return updated_state
 
 
 def create_world(state: WorldState) -> WorldState:
+    """Generate a world dictionary using the LLM based on user inputs."""
+
+    print("Creating world dictionary data...")
+
     prompt_template = """
     ## ROLE
     You are a narrative generator for a procedural RPG game.
@@ -117,6 +125,7 @@ def create_world(state: WorldState) -> WorldState:
         "llm_dict": llm_dict,
     }
 
+    print("World dictionary data created successfully. Moving on...")
     return updated_state
 
 
@@ -124,6 +133,8 @@ def convert_to_langchain_document(state: WorldState) -> WorldState:
     """
     Convert the LLM response into a Document format suitable for storage.
     """
+    print("Converting LLM response to LangChain Document...")
+
     llm_dict = state.get("llm_dict", {})
     lc_document = Document(
         page_content=llm_dict.get("page_content", ""),
@@ -135,7 +146,30 @@ def convert_to_langchain_document(state: WorldState) -> WorldState:
         "lc_document": lc_document,
     }
 
+    print("Conversion to LangChain Document completed successfully. Moving on...")
     return updated_state
+
+
+def save_document_to_chroma(state: WorldState) -> WorldState:
+    """
+    Save the generated document to the Chroma database.
+    """
+    print("Saving LangChain Document to Chroma database...")
+
+    db_collection = Chroma(
+        client=CHROMA_DB_CLIENT,
+        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        collection_name="worlds",
+    )
+
+    lc_document = state.get("lc_document")
+    document_id = state.get("world_id", str(uuid4()))
+
+    if lc_document:
+        db_collection.add_documents([lc_document], ids=[document_id])
+
+    print("Document saved to Chroma database successfully.")
+    return state
 
 
 # ------------------------------------------------------------------ #
@@ -148,10 +182,12 @@ graph = StateGraph(WorldState)
 graph.add_node("get_world_id", get_world_id)
 graph.add_node("create_world", create_world)
 graph.add_node("convert_to_langchain_document", convert_to_langchain_document)
+graph.add_node("save_document_to_chroma", save_document_to_chroma)
 
 graph.set_entry_point("get_world_id")
 graph.add_edge("get_world_id", "create_world")
 graph.add_edge("create_world", "convert_to_langchain_document")
-graph.add_edge("convert_to_langchain_document", END)
+graph.add_edge("convert_to_langchain_document", "save_document_to_chroma")
+graph.add_edge("save_document_to_chroma", END)
 
 world_creation_graph = graph.compile()

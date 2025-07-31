@@ -1,5 +1,6 @@
 # Libs
 import chromadb
+import ast
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_chroma import Chroma
 from langchain_core.prompts import PromptTemplate
@@ -27,7 +28,7 @@ class WorldState(TypedDict):
     story_directives: Required[str]
     # Optional as inputs:
     world_id: NotRequired[str]
-    llm_json: NotRequired[str]
+    llm_dict: NotRequired[dict[str, str]]
 
 
 # ------------------------------------------------------------------ #
@@ -73,7 +74,7 @@ def create_world(state: WorldState) -> WorldState:
     - Each value must be coherent with the creative expectations.
     - Write in an easy-to-read manner.
     - Do not include any explanations, comments, or markdown formatting.
-    - Return a single valid python dictionary.
+    - Return a single valid Python dictionary.
     - Respect the following dictionary structure:
     {
         "page_content": string (short descriptive paragraph introducing the world),
@@ -95,7 +96,6 @@ def create_world(state: WorldState) -> WorldState:
         story_directives=state["story_directives"],
     )
     truncated_prompt = truncate_structured_prompt(formatted_prompt)
-
     llm_model = ChatOpenAI(
         model=LLM_NAME,
         temperature=0.7,
@@ -103,10 +103,16 @@ def create_world(state: WorldState) -> WorldState:
         max_retries=2,
     )
 
-    llm_response = llm_model.invoke(truncated_prompt).content
+    raw_output = llm_model.invoke(truncated_prompt).content
+    if isinstance(raw_output, str):
+        llm_response = raw_output.strip()
+    else:
+        llm_response = str(raw_output)
+
+    llm_dict: dict[str, str] = ast.literal_eval(llm_response)
     updated_state: WorldState = {
         **state,
-        "llm_json": str(llm_response) if llm_response else "",
+        "llm_dict": llm_dict,
     }
 
     return updated_state

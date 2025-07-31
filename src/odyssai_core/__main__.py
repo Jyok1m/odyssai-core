@@ -17,7 +17,7 @@ def generate_world():
             "world_setting": user_answers.get("world_setting", ""),
         }
     )
-    world_creation_result = result_2["llm_json"]
+    world_creation_result = result_2["llm_dict"]
     print(world_creation_result)
 
 

@@ -4,6 +4,7 @@ import ast
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_chroma import Chroma
 from langchain_core.prompts import PromptTemplate
+from langchain_core.documents import Document
 from langgraph.graph import StateGraph, END
 from typing_extensions import TypedDict, Required, NotRequired
 from uuid import uuid4
@@ -29,6 +30,7 @@ class WorldState(TypedDict):
     # Optional as inputs:
     world_id: NotRequired[str]
     llm_dict: NotRequired[dict[str, str]]
+    lc_document: NotRequired[Document]
 
 
 # ------------------------------------------------------------------ #
@@ -118,6 +120,24 @@ def create_world(state: WorldState) -> WorldState:
     return updated_state
 
 
+def convert_to_langchain_document(state: WorldState) -> WorldState:
+    """
+    Convert the LLM response into a Document format suitable for storage.
+    """
+    llm_dict = state.get("llm_dict", {})
+    lc_document = Document(
+        page_content=llm_dict.get("page_content", ""),
+        metadata=llm_dict.get("metadata", {}),
+    )
+
+    updated_state: WorldState = {
+        **state,
+        "lc_document": lc_document,
+    }
+
+    return updated_state
+
+
 # ------------------------------------------------------------------ #
 #                            Graph builder                           #
 # ------------------------------------------------------------------ #
@@ -127,9 +147,11 @@ graph = StateGraph(WorldState)
 
 graph.add_node("get_world_id", get_world_id)
 graph.add_node("create_world", create_world)
+graph.add_node("convert_to_langchain_document", convert_to_langchain_document)
 
 graph.set_entry_point("get_world_id")
 graph.add_edge("get_world_id", "create_world")
-graph.add_edge("create_world", END)
+graph.add_edge("create_world", "convert_to_langchain_document")
+graph.add_edge("convert_to_langchain_document", END)
 
 world_creation_graph = graph.compile()

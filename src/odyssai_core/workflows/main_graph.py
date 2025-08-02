@@ -59,7 +59,7 @@ class StateSchema(TypedDict):
 
 
 # ------------------------------------------------------------------ #
-#                      INITIALISATION FUNCTIONS                      #
+#                     WORLD GENERATION FUNCTIONS                     #
 # ------------------------------------------------------------------ #
 
 
@@ -169,19 +169,14 @@ def ask_story_directives(state: StateSchema) -> StateSchema:
     return state
 
 
-# ------------------------------------------------------------------ #
-#                     WORLD GENERATION FUNCTIONS                     #
-# ------------------------------------------------------------------ #
-
-
 @traceable(run_type="chain", name="LLM Generate World Data")
 def llm_generate_world_data(state: StateSchema) -> StateSchema:
     cue = (
         "The world data is being generated. "
-        "This may take a few moments, please be patient."
+        "This may take a few moments, please be patient..."
     )
     print("\n")
-    print(textwrap.fill(f"AI: 🔎 {cue}", width=TERMINAL_WIDTH))
+    print(textwrap.fill(f"AI: ⏱️ {cue}", width=TERMINAL_WIDTH))
 
     state["active_step"] = "world_creation"
 
@@ -253,6 +248,16 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
 # ------------------------------------------------------------------ #
 
 
+@traceable(run_type="chain", name="Ask player if they want to create a new character")
+def ask_create_new_character(state: StateSchema) -> StateSchema:
+    cue = "Do you want to play as a new character? (y/n)"
+    print("\n")
+    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
+    response = input("Answer: ").strip().lower()
+    state["create_new_character"] = response in ["yes", "y"]
+    return state
+
+
 @traceable(run_type="chain", name="Ask for the name of the character")
 def ask_new_character_name(state: StateSchema) -> StateSchema:
     if state.get("create_new_character"):
@@ -261,7 +266,7 @@ def ask_new_character_name(state: StateSchema) -> StateSchema:
             "Choose a name that reflects their personality, background, or role in the world."
         )
     else:
-        cue = "What is the name of the character you want to play? "
+        cue = "What is the name of the character you want to play as? "
 
     print("\n")
     print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
@@ -307,12 +312,12 @@ def check_character_exists(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="Ask for character details")
 def ask_character_details(state: StateSchema) -> StateSchema:
-    cue = "Please provide additional details about your character: "
+    cue = "Please provide additional details about your character. "
     print("\n")
     print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
-
-    character_gender = input("Character Gender: ")
-    character_description = input("Character Description: ")
+    print("\n")
+    character_gender = input("Gender: ")
+    character_description = input("Description: ")
 
     state["character_gender"] = (
         character_gender.strip() if character_gender else "Generate a character gender"
@@ -330,10 +335,10 @@ def ask_character_details(state: StateSchema) -> StateSchema:
 def llm_generate_character_data(state: StateSchema) -> StateSchema:
     cue = (
         "The character data is being generated. "
-        "This may take a few moments, please be patient."
+        "This may take a few moments, please be patient..."
     )
     print("\n")
-    print(textwrap.fill(f"AI: 🔎 {cue}", width=TERMINAL_WIDTH))
+    print(textwrap.fill(f"AI: ⏱️ {cue}", width=TERMINAL_WIDTH))
 
     state["active_step"] = "character_creation"
 
@@ -462,11 +467,11 @@ def get_lore_context(state: StateSchema) -> StateSchema:
 @traceable(run_type="chain", name="LLM Generate Lore Data")
 def llm_generate_lore_data(state: StateSchema) -> StateSchema:
     cue = (
-        "The world data is being generated. "
-        "This may take a few moments, please be patient."
+        "The lore data is being generated. "
+        "This may take a few moments, please be patient..."
     )
     print("\n")
-    print(textwrap.fill(f"AI: 🔎 {cue}", width=TERMINAL_WIDTH))
+    print(textwrap.fill(f"AI: ⏱️ {cue}", width=TERMINAL_WIDTH))
 
     state["active_step"] = "lore_generation"
 
@@ -565,6 +570,9 @@ def save_documents_to_chroma(state: StateSchema) -> StateSchema:
     elif state.get("active_step") == "lore_generation":
         ids = [str(uuid4()) for _ in documents_to_save]
         collection_name = "lores"
+    elif state.get("active_step") == "character_creation":
+        ids = [str(uuid4()) for _ in documents_to_save]
+        collection_name = "characters"
     else:
         ids = [str(uuid4()) for _ in documents_to_save]
         collection_name = "test"
@@ -633,9 +641,11 @@ def route_character_creation(
 
 def route_after_saving(
     state: StateSchema,
-) -> Literal["__from_world__", "__from_lore__"]:
+) -> Literal["__from_world__", "__from_lore__", "__from_character__"]:
     if state.get("active_step") == "world_creation":
         return "__from_world__"
+    elif state.get("active_step") == "character_creation":
+        return "__from_character__"
     else:
         return "__from_lore__"
 
@@ -657,6 +667,7 @@ graph.add_node("ask_story_directives", ask_story_directives)
 graph.add_node("llm_generate_world_data", llm_generate_world_data)
 
 # Character Creation Nodes
+graph.add_node("ask_create_new_character", ask_create_new_character)
 graph.add_node("ask_new_character_name", ask_new_character_name)
 graph.add_node("check_character_exists", check_character_exists)
 graph.add_node("ask_character_details", ask_character_details)
@@ -699,7 +710,7 @@ graph.add_conditional_edges(
     {
         "__must_restart_init__": "ask_if_new_world",
         "__must_configure__": "ask_world_genre",
-        "__exists__": "get_world_context",
+        "__exists__": "ask_create_new_character",
     },
 )
 
@@ -709,6 +720,7 @@ graph.add_edge("ask_story_directives", "llm_generate_world_data")
 graph.add_edge("llm_generate_world_data", "save_documents_to_chroma")
 
 # Character creation block
+graph.add_edge("ask_create_new_character", "ask_new_character_name")
 graph.add_conditional_edges(
     "ask_new_character_name",
     check_input_validity,
@@ -721,9 +733,9 @@ graph.add_conditional_edges(
     "check_character_exists",
     route_character_creation,
     {
-        "__must_restart_character__": "ask_new_character_name",
+        "__must_restart_character__": "ask_create_new_character",
         "__must_configure__": "ask_character_details",
-        "__exists__": END,
+        "__exists__": "get_world_context",
     },
 )
 graph.add_edge("ask_character_details", "llm_generate_character_data")

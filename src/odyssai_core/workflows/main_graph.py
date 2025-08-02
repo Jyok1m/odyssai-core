@@ -48,6 +48,9 @@ class StateSchema(TypedDict):
     world_context: NotRequired[str]
     lore_context: NotRequired[str]
 
+    # Character Data
+    character_name: NotRequired[str]
+
 
 # ------------------------------------------------------------------ #
 #                      INITIALISATION FUNCTIONS                      #
@@ -235,6 +238,26 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
     llm_dict: dict[str, str] = ast.literal_eval(llm_response)
 
     state["llm_generated_data"] = [llm_dict]
+    return state
+
+
+# ------------------------------------------------------------------ #
+#                         CHARACTER FUNCTIONS                        #
+# ------------------------------------------------------------------ #
+
+
+@traceable(run_type="chain", name="Ask for new character name")
+def ask_new_character_name(state: StateSchema) -> StateSchema:
+    cue = (
+        "What will be the name of your character? "
+        "This name will be used to refer to your character throughout the game. "
+        "You can choose a name that reflects their personality, background, or simply something that sounds heroic or mysterious."
+    )
+    print("\n")
+    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
+    character_name = input("Answer: ")
+    state["character_name"] = character_name.strip().lower()
+    state["user_input"] = character_name.strip()
     return state
 
 
@@ -471,6 +494,9 @@ graph.add_node("ask_story_directives", ask_story_directives)
 # World Generation Nodes
 graph.add_node("llm_generate_world_data", llm_generate_world_data)
 
+# Character Creation Nodes
+graph.add_node("ask_new_character_name", ask_new_character_name)
+
 # Lore Generation Nodes
 graph.add_node("get_world_context", get_world_context)
 graph.add_node("get_lore_context", get_lore_context)
@@ -489,7 +515,7 @@ graph.add_node("save_documents_to_chroma", save_documents_to_chroma)
 # Entry point
 graph.set_entry_point("ask_if_new_world")
 
-# Transitions
+# Ask if player wants to create a new world block
 graph.add_edge("ask_if_new_world", "ask_world_name")
 graph.add_conditional_edges(
     "ask_world_name",
@@ -509,24 +535,35 @@ graph.add_conditional_edges(
     },
 )
 
-# World creation
+# World creation block
 graph.add_edge("ask_world_genre", "ask_story_directives")
 graph.add_edge("ask_story_directives", "llm_generate_world_data")
 graph.add_edge("llm_generate_world_data", "save_documents_to_chroma")
 
-# Lore creation
+# Character creation block
+graph.add_conditional_edges(
+    "ask_new_character_name",
+    check_input_validity,
+    {
+        "__valid__": END,
+        "__invalid__": "ask_new_character_name",
+    },
+)
+
+# Lore creation block
 graph.add_edge("get_world_context", "get_lore_context")
 graph.add_edge("get_lore_context", "llm_generate_lore_data")
 graph.add_edge("llm_generate_lore_data", "save_documents_to_chroma")
 
-# Route according to the active step after saving
+# Routing after saving documents block
 graph.add_conditional_edges(
     "save_documents_to_chroma",
     route_after_saving,
     {
-        "__from_world__": "get_world_context",
+        "__from_world__": "ask_new_character_name",
         "__from_lore__": END,
     },
 )
 
+# Final state
 main_graph = graph.compile()

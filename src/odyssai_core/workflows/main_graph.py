@@ -29,6 +29,13 @@ TERMINAL_WIDTH = shutil.get_terminal_size((80, 20)).columns
 
 
 class StateSchema(TypedDict):
+    # Init Data
+    world_genre: NotRequired[str]
+    story_directives: NotRequired[str]
+    create_new_world: NotRequired[bool]
+    must_restart_init: NotRequired[bool]
+    user_input: NotRequired[str]
+
     # World Data
     world_id: NotRequired[str]
     world_name: NotRequired[str]
@@ -37,12 +44,9 @@ class StateSchema(TypedDict):
     ]  # Swap data for better handling
     active_step: NotRequired[Literal["world_creation"]]
 
-    # Init Data
-    world_genre: NotRequired[str]
-    story_directives: NotRequired[str]
-    create_new_world: NotRequired[bool]
-    must_restart_init: NotRequired[bool]
-    user_input: NotRequired[str]
+    # Global Data
+    world_context: NotRequired[str]
+    lore_context: NotRequired[str]
 
 
 # ------------------------------------------------------------------ #
@@ -228,6 +232,54 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
 
 
 # ------------------------------------------------------------------ #
+#                      LORE GENERATION FUNCTIONS                     #
+# ------------------------------------------------------------------ #
+
+
+@traceable(run_type="chain", name="Get world context")
+def get_world_context(state: StateSchema) -> StateSchema:
+    db_collection = Chroma(
+        client=CHROMA_DB_CLIENT,
+        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        collection_name="worlds",
+    )
+    result = db_collection.get(where={"world_id": state.get("world_id", "")})
+
+    if result["ids"]:
+        state["world_context"] = result["documents"][0]
+    else:
+        state["world_context"] = "No context provided."
+
+    return state
+
+
+@traceable(run_type="chain", name="Get lore context")
+def get_lore_context(state: StateSchema) -> StateSchema:
+    db_collection = Chroma(
+        client=CHROMA_DB_CLIENT,
+        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        collection_name="lores",
+    )
+
+    retriever = db_collection.as_retriever(
+        search_type="mmr",
+        search_kwargs={"where": {"world_id": state.get("world_id", ".")}},
+    )
+
+    result = retriever.get_relevant_documents(
+        query="What are the best documents about lore in this world?",
+        context=state.get("lore_context", "No context provided."),
+    )
+
+    if len(result) > 0:
+        state["lore_context"] = "\n".join([doc.page_content for doc in result])
+    else:
+        state["lore_context"] = "No lore context available."
+
+    return state
+
+
+# ------------------------------------------------------------------ #
 #                          UTILITY FUNCTIONS                         #
 # ------------------------------------------------------------------ #
 
@@ -317,6 +369,10 @@ graph.add_node("ask_story_directives", ask_story_directives)
 # World Generation Nodes
 graph.add_node("llm_generate_world_data", llm_generate_world_data)
 
+# Lore Generation Nodes
+graph.add_node("get_world_context", get_world_context)
+graph.add_node("get_lore_context", get_lore_context)
+
 # Validators
 graph.add_node("check_input_validity", check_input_validity)
 graph.add_node("route_world_creation", route_world_creation)
@@ -348,9 +404,15 @@ graph.add_conditional_edges(
         "__exists__": END,
     },
 )
+
+# World creation
 graph.add_edge("ask_world_genre", "ask_story_directives")
 graph.add_edge("ask_story_directives", "llm_generate_world_data")
 graph.add_edge("llm_generate_world_data", "save_documents_to_chroma")
-graph.add_edge("save_documents_to_chroma", END)
+graph.add_edge("save_documents_to_chroma", "get_world_context")
+
+# Lore creation
+graph.add_edge("get_world_context", "get_lore_context")
+graph.add_edge("get_lore_context", END)
 
 main_graph = graph.compile()

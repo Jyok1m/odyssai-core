@@ -49,7 +49,12 @@ class StateSchema(TypedDict):
     lore_context: NotRequired[str]
 
     # Character Data
+    create_new_character: NotRequired[bool]
     character_name: NotRequired[str]
+    character_gender: NotRequired[str]
+    character_age: NotRequired[int]
+    character_description: NotRequired[str]
+    must_restart_character: NotRequired[bool]
 
 
 # ------------------------------------------------------------------ #
@@ -238,6 +243,7 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
     llm_dict: dict[str, str] = ast.literal_eval(llm_response)
 
     state["llm_generated_data"] = [llm_dict]
+    state["create_new_character"] = True  # Set to True to prompt character creation
     return state
 
 
@@ -246,18 +252,55 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
 # ------------------------------------------------------------------ #
 
 
-@traceable(run_type="chain", name="Ask for new character name")
+@traceable(run_type="chain", name="Ask for the name of the character")
 def ask_new_character_name(state: StateSchema) -> StateSchema:
-    cue = (
-        "What will be the name of your character? "
-        "This name will be used to refer to your character throughout the game. "
-        "You can choose a name that reflects their personality, background, or simply something that sounds heroic or mysterious."
-    )
+    if state.get("create_new_character"):
+        cue = (
+            "What is the name of your character? "
+            "Choose a name that reflects their personality, background, or role in the world."
+        )
+    else:
+        cue = "What is the name of the character you want to play? "
+
     print("\n")
     print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
     character_name = input("Answer: ")
     state["character_name"] = character_name.strip().lower()
     state["user_input"] = character_name.strip()
+    return state
+
+
+@traceable(run_type="chain", name="Check if character exists")
+def check_character_exists(state: StateSchema) -> StateSchema:
+    db_collection = Chroma(
+        client=CHROMA_DB_CLIENT,
+        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        collection_name="characters",
+    )
+    result = db_collection.get(where={"world_id": state.get("world_id", "")})
+    character_exists = len(result["ids"]) > 0
+
+    if character_exists and state.get("create_new_character"):
+        cue = (
+            f"The character '{state.get('character_name')}' already exists. "
+            "Please restart the process and choose a different name."
+        )
+        print("\n")
+        print(textwrap.fill(f"AI: ❌ {cue}", width=TERMINAL_WIDTH))
+        state["must_restart_character"] = True
+        return state
+    elif not character_exists and not state.get("create_new_character"):
+        cue = (
+            f"The character '{state.get('character_name')}' does not exist. "
+            "You must choose a different name or create a new character."
+        )
+        print("\n")
+        print(textwrap.fill(f"AI: ❌ {cue}", width=TERMINAL_WIDTH))
+        state["must_restart_character"] = True
+        return state
+
+    state["must_restart_character"] = False
+    state["create_new_character"] = not character_exists
     return state
 
 
@@ -456,12 +499,28 @@ def check_input_validity(
     return res
 
 
+# ------------------------------------------------------------------ #
+#                               ROUTERS                              #
+# ------------------------------------------------------------------ #
+
+
 def route_world_creation(
     state: StateSchema,
 ) -> Literal["__exists__", "__must_configure__", "__must_restart_init__"]:
     if state.get("must_restart_init"):
         return "__must_restart_init__"
     elif state.get("create_new_world"):
+        return "__must_configure__"
+    else:
+        return "__exists__"
+
+
+def route_character_creation(
+    state: StateSchema,
+) -> Literal["__exists__", "__must_configure__", "__must_restart_character__"]:
+    if state.get("must_restart_character"):
+        return "__must_restart_character__"
+    elif state.get("create_new_character"):
         return "__must_configure__"
     else:
         return "__exists__"
@@ -496,6 +555,7 @@ graph.add_node("llm_generate_world_data", llm_generate_world_data)
 
 # Character Creation Nodes
 graph.add_node("ask_new_character_name", ask_new_character_name)
+graph.add_node("check_character_exists", check_character_exists)
 
 # Lore Generation Nodes
 graph.add_node("get_world_context", get_world_context)
@@ -504,6 +564,9 @@ graph.add_node("llm_generate_lore_data", llm_generate_lore_data)
 
 # Validators
 graph.add_node("check_input_validity", check_input_validity)
+
+# Routing Nodes
+graph.add_node("route_character_creation", route_character_creation)
 graph.add_node("route_world_creation", route_world_creation)
 graph.add_node("route_after_saving", route_after_saving)
 
@@ -545,8 +608,17 @@ graph.add_conditional_edges(
     "ask_new_character_name",
     check_input_validity,
     {
-        "__valid__": END,
+        "__valid__": "check_character_exists",
         "__invalid__": "ask_new_character_name",
+    },
+)
+graph.add_conditional_edges(
+    "check_character_exists",
+    route_character_creation,
+    {
+        "__must_restart_character__": "ask_new_character_name",
+        "__must_configure__": END,
+        "__exists__": END,
     },
 )
 

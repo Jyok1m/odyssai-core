@@ -42,7 +42,7 @@ class StateSchema(TypedDict):
     llm_generated_data: NotRequired[
         list[dict[str, str]]
     ]  # Swap data for better handling
-    active_step: NotRequired[Literal["world_creation"]]
+    active_step: NotRequired[Literal["world_creation", "lore_generation"]]
 
     # Global Data
     world_context: NotRequired[str]
@@ -167,6 +167,13 @@ def ask_story_directives(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="LLM Generate World Data")
 def llm_generate_world_data(state: StateSchema) -> StateSchema:
+    cue = (
+        "The world data is being generated. "
+        "This may take a few moments, please be patient."
+    )
+    print("\n")
+    print(textwrap.fill(f"AI: 🔎 {cue}", width=TERMINAL_WIDTH))
+
     state["active_step"] = "world_creation"
 
     prompt_template = """
@@ -243,7 +250,7 @@ def get_world_context(state: StateSchema) -> StateSchema:
         embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
         collection_name="worlds",
     )
-    result = db_collection.get(where={"world_id": state.get("world_id", "")})
+    result = db_collection.get(ids=[state.get("world_id", "")])
 
     if result["ids"]:
         state["world_context"] = result["documents"][0]
@@ -263,18 +270,101 @@ def get_lore_context(state: StateSchema) -> StateSchema:
 
     retriever = db_collection.as_retriever(
         search_type="mmr",
-        search_kwargs={"where": {"world_id": state.get("world_id", ".")}},
+        search_kwargs={
+            "k": 10,
+            "lambda_mult": 0.2,  # 0 - 1
+            "where": {"world_id": state.get("world_id", "")},
+        },
     )
 
-    result = retriever.get_relevant_documents(
-        query="What are the best documents about lore in this world?",
-        context=state.get("lore_context", "No context provided."),
-    )
+    query = f"Lore about the world {state.get('world_name', 'Unknown World')}"
+    result = retriever.invoke(query)
 
     if len(result) > 0:
         state["lore_context"] = "\n".join([doc.page_content for doc in result])
     else:
         state["lore_context"] = "No lore context available."
+
+    return state
+
+
+@traceable(run_type="chain", name="LLM Generate Lore Data")
+def llm_generate_lore_data(state: StateSchema) -> StateSchema:
+    cue = (
+        "The world data is being generated. "
+        "This may take a few moments, please be patient."
+    )
+    print("\n")
+    print(textwrap.fill(f"AI: 🔎 {cue}", width=TERMINAL_WIDTH))
+
+    state["active_step"] = "lore_generation"
+
+    prompt_template = """
+    ## ROLE
+    You are a lorewriter for a procedural RPG game. 
+    You create deep, immersive backstory content that expands the myth, history, or secret truths of a given fantasy or sci-fi world.
+
+    ## OBJECTIVE
+    Your task is to generate a rich, standalone paragraph of lore for the world "{{world_name}}" (in Normal case). 
+    This lore should feel like a rediscovered ancient text, a whispered legend, or a crucial fragment of the world's deeper narrative.
+
+    ## EXISTING CONTEXTS
+    Below is existing world context to inspire and ground your writing:
+
+    --- WORLD CONTEXT ---
+    {{world_context}}
+    ----------------------
+
+    Below is existing lore that has already been written about this world:
+
+    --- EXISTING LORE CONTEXT ---
+    {{lore_context}}
+    -----------------------------
+
+    ## FORMAT
+    - Write a single detailed paragraph of lore in natural language.
+    - Avoid explanations or meta-comments about the lore itself.
+    - Do not include any markdown, YAML, bullet points, or code formatting.
+    - Output a raw Python dictionary with the following format:
+
+    {
+        "page_content": "string" (a dense and evocative lore paragraph expanding the world's mythology or history),
+        "metadata": {
+            "world_name": "{{world_name}}" (in lowercase),
+            "world_id": "{{world_id}}",
+            "type": "lore",
+            "theme": "derived from world context",
+            "tags": "string of tags" (e.g. 'ancient prophecy, lost civilization, divine war')
+        }
+    }
+
+    !!! DO NOT USE MARKDOWN OR FORMATTING LIKE ```python. OUTPUT ONLY A RAW PYTHON DICTIONARY. !!!
+    """
+
+    prompt = PromptTemplate.from_template(prompt_template, template_format="jinja2")
+    formatted_prompt = prompt.format(
+        world_name=state.get("world_name", "World name not provided."),
+        world_context=state.get("world_context", "No world context available."),
+        lore_context=state.get("lore_context", "No lore context available."),
+        world_id=state.get("world_id", str(uuid4())),
+    )
+    truncated_prompt = truncate_structured_prompt(formatted_prompt)
+
+    llm_model = ChatOpenAI(
+        model=LLM_NAME,
+        temperature=1,
+        streaming=False,
+        max_retries=2,
+    )
+
+    raw_output = llm_model.invoke(truncated_prompt).content
+    llm_response = (
+        raw_output.strip() if isinstance(raw_output, str) else str(raw_output)
+    )
+
+    llm_dict: dict[str, str] = ast.literal_eval(llm_response)
+
+    state["llm_generated_data"] = [llm_dict]
 
     return state
 
@@ -301,6 +391,9 @@ def save_documents_to_chroma(state: StateSchema) -> StateSchema:
     if state.get("active_step") == "world_creation":
         ids = [world_id]
         collection_name = "worlds"
+    elif state.get("active_step") == "lore_generation":
+        ids = [str(uuid4()) for _ in documents_to_save]
+        collection_name = "lores"
     else:
         ids = [str(uuid4()) for _ in documents_to_save]
         collection_name = "test"
@@ -313,7 +406,7 @@ def save_documents_to_chroma(state: StateSchema) -> StateSchema:
 
     db_collection.add_documents(documents_to_save, ids=ids)
 
-    cue = "The world data has been successfully saved to the Chroma database! "
+    cue = "The documents have been successfully saved to the Chroma database! "
 
     print("\n")
     print(textwrap.fill(f"AI: ✅ {cue}", width=TERMINAL_WIDTH))
@@ -351,6 +444,15 @@ def route_world_creation(
         return "__exists__"
 
 
+def route_after_saving(
+    state: StateSchema,
+) -> Literal["__from_world__", "__from_lore__"]:
+    if state.get("active_step") == "world_creation":
+        return "__from_world__"
+    else:
+        return "__from_lore__"
+
+
 # ------------------------------------------------------------------ #
 #                                GRAPH                               #
 # ------------------------------------------------------------------ #
@@ -372,10 +474,12 @@ graph.add_node("llm_generate_world_data", llm_generate_world_data)
 # Lore Generation Nodes
 graph.add_node("get_world_context", get_world_context)
 graph.add_node("get_lore_context", get_lore_context)
+graph.add_node("llm_generate_lore_data", llm_generate_lore_data)
 
 # Validators
 graph.add_node("check_input_validity", check_input_validity)
 graph.add_node("route_world_creation", route_world_creation)
+graph.add_node("route_after_saving", route_after_saving)
 
 # Utility Functions
 graph.add_node("save_documents_to_chroma", save_documents_to_chroma)
@@ -401,7 +505,7 @@ graph.add_conditional_edges(
     {
         "__must_restart_init__": "ask_if_new_world",
         "__must_configure__": "ask_world_genre",
-        "__exists__": END,
+        "__exists__": "get_world_context",
     },
 )
 
@@ -409,10 +513,20 @@ graph.add_conditional_edges(
 graph.add_edge("ask_world_genre", "ask_story_directives")
 graph.add_edge("ask_story_directives", "llm_generate_world_data")
 graph.add_edge("llm_generate_world_data", "save_documents_to_chroma")
-graph.add_edge("save_documents_to_chroma", "get_world_context")
 
 # Lore creation
 graph.add_edge("get_world_context", "get_lore_context")
-graph.add_edge("get_lore_context", END)
+graph.add_edge("get_lore_context", "llm_generate_lore_data")
+graph.add_edge("llm_generate_lore_data", "save_documents_to_chroma")
+
+# Route according to the active step after saving
+graph.add_conditional_edges(
+    "save_documents_to_chroma",
+    route_after_saving,
+    {
+        "__from_world__": "get_world_context",
+        "__from_lore__": END,
+    },
+)
 
 main_graph = graph.compile()

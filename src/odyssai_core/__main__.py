@@ -6,6 +6,7 @@ from .workflows.main_graph import main_graph
 
 
 def main():
+    print("\n Welcome to Odyssai. Let the adventure begin!")
     result = main_graph.invoke({})
     print("Result: \n", result)
 

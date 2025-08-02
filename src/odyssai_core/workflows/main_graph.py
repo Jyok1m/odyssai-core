@@ -2,6 +2,8 @@
 import os
 import chromadb
 import ast
+import textwrap
+import shutil
 from uuid import uuid4
 from functools import partial
 from typing_extensions import TypedDict, Literal, Required, NotRequired
@@ -18,10 +20,10 @@ from langsmith import traceable
 from ..utils.prompt_truncation import truncate_structured_prompt
 from ..config.settings import CHROMA_API_KEY, CHROMA_TENANT, CHROMA_DATABASE
 from ..constants.llm_models import LLM_NAME, EMBEDDING_MODEL
-from ..constants.interaction_cues import WORLD_BUILDING_CUES
 
 # Static variables
 CHROMA_DB_CLIENT = chromadb.CloudClient(CHROMA_TENANT, CHROMA_DATABASE, CHROMA_API_KEY)
+TERMINAL_WIDTH = shutil.get_terminal_size((80, 20)).columns
 
 # ------------------------------------------------------------------ #
 #                                SCHEMA                              #
@@ -32,12 +34,13 @@ class StateSchema(TypedDict):
     # World Data
     world_id: NotRequired[str]
     world_name: NotRequired[str]
-    world_data: NotRequired[dict[str, str]]
+    llm_gen_data: NotRequired[list[dict[str, str]]]  # Swap data for better handling
 
     # Init Data
     world_genre: NotRequired[str]
     story_directives: NotRequired[str]
     create_new_world: NotRequired[bool]
+    must_restart_init: NotRequired[bool]
     user_input: NotRequired[str]
 
 
@@ -48,7 +51,9 @@ class StateSchema(TypedDict):
 
 @traceable(run_type="chain", name="Ask player if they want to create a new world")
 def ask_if_new_world(state: StateSchema) -> StateSchema:
-    response = input("Do you want to create a new world? (yes/no): ").strip().lower()
+    cue = "Do you want to create a new world? (y/n)"
+    print(textwrap.fill(f"\nAI: {cue}", width=TERMINAL_WIDTH))
+    response = input(" Answer: ").strip().lower()
     state["create_new_world"] = response in ["yes", "y"]
     return state
 
@@ -56,13 +61,20 @@ def ask_if_new_world(state: StateSchema) -> StateSchema:
 @traceable(run_type="chain", name="Ask for the name of the world")
 def ask_world_name(state: StateSchema) -> StateSchema:
     if state.get("create_new_world"):
-        world_name = input(
-            "What is the name of the new world you would like to create? "
+        cue = (
+            "What would you like to name your world? "
+            "You can choose a name that reflects its history, culture, dominant species, "
+            "or simply something that sounds powerful, mystical, or poetic."
         )
     else:
-        world_name = input("What is the name of the world you would like to join? ")
-
-    state["world_name"] = world_name.strip()
+        cue = (
+            "Which existing world would you like to enter? "
+            "You may choose a known realm you’ve visited before, "
+            "or mention one by name if you’ve heard whispers of its legend."
+        )
+    print(textwrap.fill(f"\nAI: {cue}", width=TERMINAL_WIDTH))
+    world_name = input(" Answer: ")
+    state["world_name"] = world_name.strip().lower()
     state["user_input"] = world_name.strip()
     return state
 
@@ -76,6 +88,25 @@ def check_world_exists(state: StateSchema) -> StateSchema:
     )
     result = db_collection.get(where={"world_name": state.get("world_name", "")})
     world_exists = len(result["ids"]) > 0
+
+    if world_exists and state.get("create_new_world"):
+        cue = (
+            f"The world '{state.get('world_name')}' already exists. "
+            "Please restart the process and choose a different name."
+        )
+        print(textwrap.fill(f"\nAI: ❌ {cue}", width=TERMINAL_WIDTH))
+        state["must_restart_init"] = True
+        return state
+    elif not world_exists and not state.get("create_new_world"):
+        cue = (
+            f"The world '{state.get('world_name')}' does not exist. "
+            "You must choose a different name or create a new world."
+        )
+        print(textwrap.fill(f"\nAI: ❌ {cue}", width=TERMINAL_WIDTH))
+        state["must_restart_init"] = True
+        return state
+
+    state["must_restart_init"] = False
     state["create_new_world"] = not world_exists
     state["world_id"] = result["ids"][0] if result["ids"] else str(uuid4())
     return state
@@ -83,9 +114,14 @@ def check_world_exists(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="Ask for the genre of the world")
 def ask_world_genre(state: StateSchema) -> StateSchema:
-    world_genre = input(
-        "What would be the genre of the world you would like to adventure in? (e.g., medieval, cyberpunk, fantasy, realistic...) "
+    cue = (
+        "Describe the world’s main genre — "
+        "is it hopeful or grim, ancient or futuristic, magical or technological? "
+        "Give as much detail as you’d like."
     )
+
+    print(textwrap.fill(f"\nAI: {cue}", width=TERMINAL_WIDTH))
+    world_genre = input(" Answer: ")
     state["world_genre"] = world_genre.strip()
     state["user_input"] = world_genre.strip()
     return state
@@ -93,9 +129,16 @@ def ask_world_genre(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="Ask for story directives")
 def ask_story_directives(state: StateSchema) -> StateSchema:
-    story_directives = input(
-        "Do you have any specific narrative directives or themes you'd like the story to follow? (e.g., rebellion, survival, I want a story based on bond creation, friendship and alliances...) "
+    cue = (
+        "Are there particular themes or narrative threads you’d like to explore? "
+        "Think in terms of emotional arcs (e.g. redemption, betrayal), "
+        "overarching goals (e.g. building alliances, resisting tyranny), "
+        "or narrative tones (e.g. tragic, hopeful, mysterious). "
+        "Let your imagination guide the story’s soul."
     )
+
+    print(textwrap.fill(f"\nAI: {cue}", width=TERMINAL_WIDTH))
+    story_directives = input(" Answer: ")
     state["story_directives"] = story_directives.strip()
     state["user_input"] = story_directives.strip()
     return state
@@ -113,7 +156,7 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
     You are a narrative generator for a procedural RPG game.
 
     ## OBJECTIVE
-    Your task is to generate an overview of the world "{{world_name}}".
+    Your task is to generate an overview of the world "{{world_name}}" (in Normal case).
 
     ## CREATIVE EXPECTATIONS
     - The theme of the world must be: {{world_genre}}
@@ -128,14 +171,14 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
     {
         "page_content": string (short descriptive paragraph introducing the world),
         "metadata": {
-            "world_name": "{{world_name}}",
+            "world_name": "{{world_name}}" (in lowercase),
             "genre": "string" (e.g. 'fantasy', 'sci-fi', 'dark fantasy' etc... based on the genre: {{world_genre}}),
             "dominant_species": "string" (e.g. 'humans', 'elves', 'androids' etc...),
             "magic_presence": True or False (whether magic exists in the world),
             "governance": "string" (e.g. 'monarchy', 'anarchy', 'federation' etc...)
         }
     }
-    
+
     !!! DO NOT USE MARKDOWN OR FORMATTING LIKE ```python. OUTPUT ONLY A RAW PYTHON DICTIONARY. !!!
     """
 
@@ -166,7 +209,7 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
 
     llm_dict: dict[str, str] = ast.literal_eval(llm_response)
 
-    state["world_data"] = llm_dict
+    state["llm_gen_data"] = [llm_dict]
     return state
 
 
@@ -193,6 +236,8 @@ def check_input_validity(
     res = "__valid__"
 
     if not state.get("user_input"):
+        cue = "It seems you haven't provided any input. Let's try again."
+        print(textwrap.fill(f"\nAI: {cue}", width=TERMINAL_WIDTH))
         res = "__invalid__"
 
     state["user_input"] = ""
@@ -201,8 +246,13 @@ def check_input_validity(
 
 def route_world_creation(
     state: StateSchema,
-) -> Literal["__exists__", "__must_configure__"]:
-    return "__must_configure__" if state.get("create_new_world") else "__exists__"
+) -> Literal["__exists__", "__must_configure__", "__must_restart_init__"]:
+    if state.get("must_restart_init"):
+        return "__must_restart_init__"
+    elif state.get("create_new_world"):
+        return "__must_configure__"
+    else:
+        return "__exists__"
 
 
 # ------------------------------------------------------------------ #
@@ -246,7 +296,11 @@ graph.add_conditional_edges(
 graph.add_conditional_edges(
     "check_world_exists",
     route_world_creation,
-    {"__must_configure__": "ask_world_genre", "__exists__": END},
+    {
+        "__must_restart_init__": "ask_if_new_world",
+        "__must_configure__": "ask_world_genre",
+        "__exists__": END,
+    },
 )
 graph.add_conditional_edges(
     "ask_world_genre",

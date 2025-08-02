@@ -10,7 +10,7 @@ def main():
     print("\n")
     print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
 
-    main_graph.invoke({})
+    main_graph.invoke({}, config={"recursion_limit": 9999})
 
 
 if __name__ == "__main__":

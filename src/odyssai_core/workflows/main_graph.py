@@ -4,6 +4,7 @@ import ast
 import textwrap
 import shutil
 from uuid import uuid4
+from datetime import datetime
 from typing_extensions import TypedDict, Literal, NotRequired
 
 # Langchain
@@ -55,7 +56,12 @@ class StateSchema(TypedDict):
     world_context: NotRequired[str]
     lore_context: NotRequired[str]
     character_context: NotRequired[str]
+    event_context: NotRequired[str]
     world_summary: NotRequired[str]
+
+    # Gameplay Data
+    ai_question: NotRequired[str]
+    continue_story: NotRequired[bool]
 
     # Character Data
     create_new_character: NotRequired[bool]
@@ -293,8 +299,10 @@ def check_character_exists(state: StateSchema) -> StateSchema:
     )
     result = db_collection.get(
         where={
-            "world_id": state.get("world_id", ""),
-            "character_name": state.get("character_name", ""),
+            "$and": [
+                {"world_id": state.get("world_id", "")},
+                {"character_name": state.get("character_name", "")},
+            ]
         }
     )
     character_exists = len(result["ids"]) > 0
@@ -661,6 +669,115 @@ def llm_generate_world_summary(state: StateSchema) -> StateSchema:
 
 
 # ------------------------------------------------------------------ #
+#                         GAMEPLAY FUNCTIONS                         #
+# ------------------------------------------------------------------ #
+
+
+@traceable(run_type="chain", name="Retrieve past events for player")
+def get_event_context(state: StateSchema) -> StateSchema:
+    character_id = state.get("character_id")
+    collection = Chroma(
+        client=CHROMA_DB_CLIENT,
+        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        collection_name=f"{character_id}_events",
+    )
+
+    retriever = collection.as_retriever(
+        search_type="mmr",
+        search_kwargs={"k": 10},
+    )
+    results = retriever.invoke("What has happened so far in the story?")
+
+    state["event_context"] = "\n".join([doc.page_content for doc in results])
+    return state
+
+
+@traceable(run_type="chain", name="LLM generate next narrative cue")
+def llm_generate_next_prompt(state: StateSchema) -> StateSchema:
+    prompt_template = """
+    ## ROLE
+    You are a story-driven game narrator.
+
+    ## OBJECTIVE
+    Based on the following context, generate a direct and immersive narrative prompt presenting a situation the player must respond to.
+
+    ## CONTEXT
+    - World Summary: {{world_summary}}
+    - Character: {{character_name}}, {{character_description}}
+    - Recent events: {{event_context}}
+
+    ## OUTPUT FORMAT
+    Output one engaging paragraph in plain text. End with a question or dilemma.
+
+    !!! DO NOT INCLUDE MARKDOWN OR CODE FORMATTING !!!
+    """
+    prompt = PromptTemplate.from_template(prompt_template, template_format="jinja2")
+    formatted_prompt = prompt.format(
+        world_summary=state.get("world_summary", ""),
+        character_name=state.get("character_name", "unknown"),
+        character_description=state.get("character_description", ""),
+        event_context=state.get("event_context", ""),
+    )
+
+    llm_model = ChatOpenAI(model=LLM_NAME, temperature=0.9)
+    result = llm_model.invoke(truncate_structured_prompt(formatted_prompt)).content
+    result = result.strip() if isinstance(result, str) else str(result)
+
+    # Save in collection
+    character_id = state.get("character_id")
+    collection = Chroma(
+        client=CHROMA_DB_CLIENT,
+        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        collection_name=f"{character_id}_events",
+    )
+
+    doc = Document(
+        page_content=result,
+        metadata={
+            "source": "AI",
+            "timestamp": datetime.utcnow().isoformat(),
+        },
+    )
+
+    collection.add_documents([doc])
+    state["ai_question"] = result
+    return state
+
+
+@traceable(run_type="chain", name="Record player response")
+def record_player_response(state: StateSchema) -> StateSchema:
+    print("\n")
+    print(textwrap.fill(f"AI: {state.get('ai_question', '')}", width=TERMINAL_WIDTH))
+    response = input("Your action: ").strip()
+
+    character_id = state.get("character_id")
+    collection = Chroma(
+        client=CHROMA_DB_CLIENT,
+        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        collection_name=f"{character_id}_events",
+    )
+    doc = Document(
+        page_content=response,
+        metadata={
+            "source": "player",
+            "timestamp": datetime.utcnow().isoformat(),
+        },
+    )
+    collection.add_documents([doc])
+    return state
+
+
+@traceable(run_type="chain", name="Ask if player wants to continue")
+def ask_to_continue_or_stop(state: StateSchema) -> StateSchema:
+    cue = "Would you like to continue the story or stop for now? (continue/stop)"
+    print("\n")
+    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
+    answer = input("Answer: ").strip().lower()
+    state["continue_story"] = answer in ["continue", "yes", "y"]
+    return state
+
+
+# ------------------------------------------------------------------ #
 #                          UTILITY FUNCTIONS                         #
 # ------------------------------------------------------------------ #
 
@@ -797,6 +914,12 @@ graph.add_node("llm_generate_lore_data", llm_generate_lore_data)
 # World Summary Nodes
 graph.add_node("llm_generate_world_summary", llm_generate_world_summary)
 
+# Gameplay Nodes
+graph.add_node("get_event_context", get_event_context)
+graph.add_node("llm_generate_next_prompt", llm_generate_next_prompt)
+graph.add_node("record_player_response", record_player_response)
+graph.add_node("ask_to_continue_or_stop", ask_to_continue_or_stop)
+
 # Validators
 graph.add_node("check_input_validity", check_input_validity)
 
@@ -878,7 +1001,19 @@ graph.add_conditional_edges(
 )
 
 # World summary generation block
-graph.add_edge("llm_generate_world_summary", END)
+graph.add_edge("llm_generate_world_summary", "get_event_context")
+graph.add_edge("get_event_context", "llm_generate_next_prompt")
+graph.add_edge("llm_generate_next_prompt", "record_player_response")
+graph.add_edge("record_player_response", "ask_to_continue_or_stop")
+
+graph.add_conditional_edges(
+    "ask_to_continue_or_stop",
+    lambda state: "__continue__" if state.get("continue_story") else "__end__",
+    {
+        "__continue__": "get_event_context",
+        "__end__": END,
+    },
+)
 
 # Final state
 main_graph = graph.compile()

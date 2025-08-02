@@ -130,13 +130,16 @@ graph = StateGraph(StateSchema)
 
 # ------------------------------ Nodes ----------------------------- #
 
+# Main Nodes
 graph.add_node("ask_if_new_world", ask_if_new_world)
 graph.add_node("ask_world_name", ask_world_name)
-graph.add_node("check_input_validity", check_input_validity)
 graph.add_node("check_world_exists", check_world_exists)
-graph.add_node("route_world_creation", route_world_creation)
 graph.add_node("ask_world_genre", ask_world_genre)
 graph.add_node("ask_story_directives", ask_story_directives)
+
+# Validators
+graph.add_node("check_input_validity", check_input_validity)
+graph.add_node("route_world_creation", route_world_creation)
 
 # ---------------------------- Workflow ---------------------------- #
 

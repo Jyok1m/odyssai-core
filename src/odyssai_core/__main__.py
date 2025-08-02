@@ -1,14 +1,23 @@
+import textwrap
+import shutil
+
 from .config import settings  # noqa: F401
-from .workflows.main_graph import main_graph
+from .workflows.main_graph import main_graph, TERMINAL_WIDTH
 # from .workflows.ask_user_graph import ask_user_graph, QuestionState
 # from .workflows.world_graph import world_creation_graph
 # from .workflows.lore_graph import lore_graph
 
 
 def main():
-    print("\n Welcome to Odyssai. Let the adventure begin!")
+    cue = (
+        "Welcome to Odyssai. Start by answering a few questions and let's get started!"
+    )
+    print("\n")
+    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
+
     result = main_graph.invoke({})
-    print("Result: \n", result)
+    print("\n")
+    print("Result: \n\n", result)
 
     # Ask user for inputs about the world
     # result_1 = ask_user_graph.invoke({"query_type": "init"})

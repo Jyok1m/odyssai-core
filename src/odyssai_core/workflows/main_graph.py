@@ -52,8 +52,9 @@ class StateSchema(TypedDict):
 @traceable(run_type="chain", name="Ask player if they want to create a new world")
 def ask_if_new_world(state: StateSchema) -> StateSchema:
     cue = "Do you want to create a new world? (y/n)"
-    print(textwrap.fill(f"\nAI: {cue}", width=TERMINAL_WIDTH))
-    response = input(" Answer: ").strip().lower()
+    print("\n")
+    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
+    response = input("Answer: ").strip().lower()
     state["create_new_world"] = response in ["yes", "y"]
     return state
 
@@ -72,8 +73,9 @@ def ask_world_name(state: StateSchema) -> StateSchema:
             "You may choose a known realm you’ve visited before, "
             "or mention one by name if you’ve heard whispers of its legend."
         )
-    print(textwrap.fill(f"\nAI: {cue}", width=TERMINAL_WIDTH))
-    world_name = input(" Answer: ")
+    print("\n")
+    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
+    world_name = input("Answer: ")
     state["world_name"] = world_name.strip().lower()
     state["user_input"] = world_name.strip()
     return state
@@ -94,7 +96,8 @@ def check_world_exists(state: StateSchema) -> StateSchema:
             f"The world '{state.get('world_name')}' already exists. "
             "Please restart the process and choose a different name."
         )
-        print(textwrap.fill(f"\nAI: ❌ {cue}", width=TERMINAL_WIDTH))
+        print("\n")
+        print(textwrap.fill(f"AI: ❌ {cue}", width=TERMINAL_WIDTH))
         state["must_restart_init"] = True
         return state
     elif not world_exists and not state.get("create_new_world"):
@@ -102,7 +105,8 @@ def check_world_exists(state: StateSchema) -> StateSchema:
             f"The world '{state.get('world_name')}' does not exist. "
             "You must choose a different name or create a new world."
         )
-        print(textwrap.fill(f"\nAI: ❌ {cue}", width=TERMINAL_WIDTH))
+        print("\n")
+        print(textwrap.fill(f"AI: ❌ {cue}", width=TERMINAL_WIDTH))
         state["must_restart_init"] = True
         return state
 
@@ -120,9 +124,9 @@ def ask_world_genre(state: StateSchema) -> StateSchema:
         "Give as much detail as you’d like. "
         "(Leave blank for a random genre)"
     )
-
-    print(textwrap.fill(f"\nAI: {cue}", width=TERMINAL_WIDTH))
-    world_genre = input(" Answer: ")
+    print("\n")
+    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
+    world_genre = input("Answer: ")
     state["world_genre"] = (
         world_genre.strip() if world_genre else "Choose a random genre"
     )
@@ -141,8 +145,9 @@ def ask_story_directives(state: StateSchema) -> StateSchema:
         "(Leave blank for random narrative threads)"
     )
 
-    print(textwrap.fill(f"\nAI: {cue}", width=TERMINAL_WIDTH))
-    story_directives = input(" Answer: ")
+    print("\n")
+    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
+    story_directives = input("Answer: ")
     state["story_directives"] = (
         story_directives.strip() if story_directives else "Choose random directives"
     )
@@ -243,7 +248,8 @@ def check_input_validity(
 
     if not state.get("user_input"):
         cue = "It seems you haven't provided any input. Let's try again."
-        print(textwrap.fill(f"\nAI: {cue}", width=TERMINAL_WIDTH))
+        print("\n")
+        print(textwrap.fill(f"AI: ❌ {cue}", width=TERMINAL_WIDTH))
         res = "__invalid__"
 
     state["user_input"] = ""

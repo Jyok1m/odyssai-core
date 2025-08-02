@@ -7,7 +7,7 @@ from functools import partial
 from typing_extensions import TypedDict, Literal, Required, NotRequired
 
 # Langchain
-from langchain_openai import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_chroma import Chroma
 from langchain_core.prompts import PromptTemplate
 from langchain_core.documents import Document
@@ -23,16 +23,18 @@ from ..constants.interaction_cues import WORLD_BUILDING_CUES
 # Static variables
 CHROMA_DB_CLIENT = chromadb.CloudClient(CHROMA_TENANT, CHROMA_DATABASE, CHROMA_API_KEY)
 
-# ENVIRONMENT VARIABLES
-
 # ------------------------------------------------------------------ #
 #                                SCHEMA                              #
 # ------------------------------------------------------------------ #
 
 
 class StateSchema(TypedDict):
+    # World Data
     world_id: NotRequired[str]
     world_name: NotRequired[str]
+    world_data: NotRequired[dict[str, str]]
+
+    # Init Data
     world_genre: NotRequired[str]
     story_directives: NotRequired[str]
     create_new_world: NotRequired[bool]
@@ -74,8 +76,8 @@ def check_world_exists(state: StateSchema) -> StateSchema:
     )
     result = db_collection.get(where={"world_name": state.get("world_name", "")})
     world_exists = len(result["ids"]) > 0
-    print(f"World exists: {world_exists} {state.get('world_name')}")
     state["create_new_world"] = not world_exists
+    state["world_id"] = result["ids"][0] if result["ids"] else str(uuid4())
     return state
 
 
@@ -97,6 +99,87 @@ def ask_story_directives(state: StateSchema) -> StateSchema:
     state["story_directives"] = story_directives.strip()
     state["user_input"] = story_directives.strip()
     return state
+
+
+# ------------------------------------------------------------------ #
+#                     WORLD GENERATION FUNCTIONS                     #
+# ------------------------------------------------------------------ #
+
+
+@traceable(run_type="chain", name="LLM Generate World Data")
+def llm_generate_world_data(state: StateSchema) -> StateSchema:
+    prompt_template = """
+    ## ROLE
+    You are a narrative generator for a procedural RPG game.
+
+    ## OBJECTIVE
+    Your task is to generate an overview of the world "{{world_name}}".
+
+    ## CREATIVE EXPECTATIONS
+    - The theme of the world must be: {{world_genre}}
+    - You must respect the following directives: {{story_directives}}
+
+    ## FORMAT
+    - Each value must be coherent with the creative expectations.
+    - Write in an easy-to-read manner.
+    - Do not include any explanations, comments, or markdown formatting.
+    - Return a single valid Python dictionary.
+    - Respect the following dictionary structure:
+    {
+        "page_content": string (short descriptive paragraph introducing the world),
+        "metadata": {
+            "world_name": "{{world_name}}",
+            "genre": "string" (e.g. 'fantasy', 'sci-fi', 'dark fantasy' etc... based on the genre: {{world_genre}}),
+            "dominant_species": "string" (e.g. 'humans', 'elves', 'androids' etc...),
+            "magic_presence": True or False (whether magic exists in the world),
+            "governance": "string" (e.g. 'monarchy', 'anarchy', 'federation' etc...)
+        }
+    }
+    
+    !!! DO NOT USE MARKDOWN OR FORMATTING LIKE ```python. OUTPUT ONLY A RAW PYTHON DICTIONARY. !!!
+    """
+
+    prompt = PromptTemplate.from_template(prompt_template, template_format="jinja2")
+    formatted_prompt = prompt.format(
+        world_name=state.get(
+            "world_name",
+            "World name not provided. Generate a default name.",
+        ),
+        world_genre=state.get("world_genre", "fantasy"),
+        story_directives=state.get(
+            "story_directives",
+            "No specific directives provided. Generate a general narrative.",
+        ),
+    )
+    truncated_prompt = truncate_structured_prompt(formatted_prompt)
+    llm_model = ChatOpenAI(
+        model=LLM_NAME,
+        temperature=0.7,
+        streaming=False,
+        max_retries=2,
+    )
+
+    raw_output = llm_model.invoke(truncated_prompt).content
+    llm_response = (
+        raw_output.strip() if isinstance(raw_output, str) else str(raw_output)
+    )
+
+    llm_dict: dict[str, str] = ast.literal_eval(llm_response)
+
+    state["world_data"] = llm_dict
+    return state
+
+
+# @traceable(run_type="chain", name="Get world ID")
+# def get_or_create_world_id(state: StateSchema) -> StateSchema:
+#     db_collection = Chroma(
+#         client=CHROMA_DB_CLIENT,
+#         embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+#         collection_name="worlds",
+#     )
+#     result = db_collection.get(where={"world_name": state.get("world_name", "")})
+#     state["world_id"] = result["ids"][0] if result["ids"] else str(uuid4())
+#     return state
 
 
 # ------------------------------------------------------------------ #
@@ -130,12 +213,16 @@ graph = StateGraph(StateSchema)
 
 # ------------------------------ Nodes ----------------------------- #
 
-# Main Nodes
+# Initialisation Nodes
 graph.add_node("ask_if_new_world", ask_if_new_world)
 graph.add_node("ask_world_name", ask_world_name)
 graph.add_node("check_world_exists", check_world_exists)
 graph.add_node("ask_world_genre", ask_world_genre)
 graph.add_node("ask_story_directives", ask_story_directives)
+
+# World Generation Nodes
+graph.add_node("llm_generate_world_data", llm_generate_world_data)
+# graph.add_node("get_or_create_world_id", get_or_create_world_id)
 
 # Validators
 graph.add_node("check_input_validity", check_input_validity)
@@ -169,7 +256,8 @@ graph.add_conditional_edges(
 graph.add_conditional_edges(
     "ask_story_directives",
     check_input_validity,
-    {"__valid__": END, "__invalid__": "ask_story_directives"},
+    {"__valid__": "llm_generate_world_data", "__invalid__": "ask_story_directives"},
 )
+graph.add_edge("llm_generate_world_data", END)
 
 main_graph = graph.compile()

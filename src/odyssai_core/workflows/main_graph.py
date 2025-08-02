@@ -49,6 +49,7 @@ class StateSchema(TypedDict):
     # Global Data
     world_context: NotRequired[str]
     lore_context: NotRequired[str]
+    character_context: NotRequired[str]
 
     # Character Data
     create_new_character: NotRequired[bool]
@@ -464,6 +465,23 @@ def get_lore_context(state: StateSchema) -> StateSchema:
     return state
 
 
+@traceable(run_type="chain", name="Get character context")
+def get_character_context(state: StateSchema) -> StateSchema:
+    db_collection = Chroma(
+        client=CHROMA_DB_CLIENT,
+        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        collection_name="characters",
+    )
+    result = db_collection.get(where={"world_id": state.get("world_id", "")})
+
+    if result["ids"]:
+        state["character_context"] = "\n".join([doc for doc in result["documents"]])
+    else:
+        state["character_context"] = "No context provided."
+
+    return state
+
+
 @traceable(run_type="chain", name="LLM Generate Lore Data")
 def llm_generate_lore_data(state: StateSchema) -> StateSchema:
     cue = (
@@ -495,6 +513,12 @@ def llm_generate_lore_data(state: StateSchema) -> StateSchema:
 
     --- EXISTING LORE CONTEXT ---
     {{lore_context}}
+    -----------------------------
+
+    Below is existing character context that has already been written about this world:
+
+    --- EXISTING CHARACTER CONTEXT ---
+    {{character_context}}
     -----------------------------
 
     ## FORMAT
@@ -676,6 +700,7 @@ graph.add_node("llm_generate_character_data", llm_generate_character_data)
 # Lore Generation Nodes
 graph.add_node("get_world_context", get_world_context)
 graph.add_node("get_lore_context", get_lore_context)
+graph.add_node("get_character_context", get_character_context)
 graph.add_node("llm_generate_lore_data", llm_generate_lore_data)
 
 # Validators
@@ -743,7 +768,8 @@ graph.add_edge("llm_generate_character_data", "save_documents_to_chroma")
 
 # Lore creation block
 graph.add_edge("get_world_context", "get_lore_context")
-graph.add_edge("get_lore_context", "llm_generate_lore_data")
+graph.add_edge("get_lore_context", "get_character_context")
+graph.add_edge("get_character_context", "llm_generate_lore_data")
 graph.add_edge("llm_generate_lore_data", "save_documents_to_chroma")
 
 # Routing after saving documents block

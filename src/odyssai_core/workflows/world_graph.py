@@ -1,4 +1,5 @@
 # Libs
+from .world_graph import world_creation_graph
 import chromadb
 import ast
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
@@ -182,6 +183,8 @@ graph.add_node("create_world", create_world)
 graph.add_node("convert_to_langchain_document", convert_to_langchain_document)
 graph.add_node("save_document_to_chroma", save_document_to_chroma)
 
+graph.add_node("world_creation_graph", world_creation_graph)
+
 graph.set_entry_point("get_world_id")
 graph.add_conditional_edges(
     "get_world_id", check_world_exists, {"__continue__": "create_world", "__end__": END}
@@ -189,5 +192,8 @@ graph.add_conditional_edges(
 graph.add_edge("create_world", "convert_to_langchain_document")
 graph.add_edge("convert_to_langchain_document", "save_document_to_chroma")
 graph.add_edge("save_document_to_chroma", END)
+
+graph.add_edge("ask_world_name", "world_creation_graph")
+graph.add_edge("world_creation_graph", END)
 
 world_creation_graph = graph.compile()

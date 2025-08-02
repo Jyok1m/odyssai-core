@@ -17,7 +17,10 @@ HF_API_KEY = os.getenv("HF_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 
 # LangSmith
-LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY")
+os.environ["LANGSMITH_TRACING"] = os.getenv("LANGSMITH_TRACING", "false")
+os.environ["LANGSMITH_ENDPOINT"] = os.getenv("LANGSMITH_ENDPOINT", "")
+os.environ["LANGSMITH_API_KEY"] = os.getenv("LANGSMITH_API_KEY", "")
+os.environ["LANGSMITH_PROJECT"] = os.getenv("LANGSMITH_PROJECT", "")
 
 # SerpAPI
 SERPAPI_API_KEY = os.getenv("SERPAPI_API_KEY")

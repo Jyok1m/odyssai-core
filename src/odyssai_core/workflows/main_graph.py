@@ -117,12 +117,15 @@ def ask_world_genre(state: StateSchema) -> StateSchema:
     cue = (
         "Describe the world’s main genre — "
         "is it hopeful or grim, ancient or futuristic, magical or technological? "
-        "Give as much detail as you’d like."
+        "Give as much detail as you’d like. "
+        "(Leave blank for a random genre)"
     )
 
     print(textwrap.fill(f"\nAI: {cue}", width=TERMINAL_WIDTH))
     world_genre = input(" Answer: ")
-    state["world_genre"] = world_genre.strip() if world_genre else "Choose for me"
+    state["world_genre"] = (
+        world_genre.strip() if world_genre else "Choose a random genre"
+    )
     state["user_input"] = world_genre.strip()
     return state
 
@@ -134,13 +137,14 @@ def ask_story_directives(state: StateSchema) -> StateSchema:
         "Think in terms of emotional arcs (e.g. redemption, betrayal), "
         "overarching goals (e.g. building alliances, resisting tyranny), "
         "or narrative tones (e.g. tragic, hopeful, mysterious). "
-        "Let your imagination guide the story’s soul."
+        "Let your imagination guide the story’s soul. "
+        "(Leave blank for random narrative threads)"
     )
 
     print(textwrap.fill(f"\nAI: {cue}", width=TERMINAL_WIDTH))
     story_directives = input(" Answer: ")
     state["story_directives"] = (
-        story_directives.strip() if story_directives else "Choose for me"
+        story_directives.strip() if story_directives else "Choose random directives"
     )
     state["user_input"] = story_directives.strip()
     return state
@@ -304,16 +308,9 @@ graph.add_conditional_edges(
         "__exists__": END,
     },
 )
-graph.add_conditional_edges(
-    "ask_world_genre",
-    check_input_validity,
-    {"__valid__": "ask_story_directives", "__invalid__": "ask_world_genre"},
-)
-graph.add_conditional_edges(
-    "ask_story_directives",
-    check_input_validity,
-    {"__valid__": "llm_generate_world_data", "__invalid__": "ask_story_directives"},
-)
+graph.add_edge("ask_world_genre", "ask_story_directives")
+graph.add_edge("ask_story_directives", "llm_generate_world_data")
+
 graph.add_edge("llm_generate_world_data", END)
 
 main_graph = graph.compile()

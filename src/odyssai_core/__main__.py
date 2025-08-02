@@ -10,9 +10,7 @@ def main():
     print("\n")
     print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
 
-    result = main_graph.invoke({})
-    print("\n")
-    print("Result: \n\n", result)
+    main_graph.invoke({})
 
 
 if __name__ == "__main__":

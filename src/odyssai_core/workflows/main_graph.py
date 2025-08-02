@@ -43,13 +43,19 @@ class StateSchema(TypedDict):
         list[dict[str, str]]
     ]  # Swap data for better handling
     active_step: NotRequired[
-        Literal["world_creation", "lore_generation", "character_creation"]
+        Literal[
+            "world_creation",
+            "lore_generation",
+            "character_creation",
+            "summary_generation",
+        ]
     ]
 
     # Global Data
     world_context: NotRequired[str]
     lore_context: NotRequired[str]
     character_context: NotRequired[str]
+    world_summary: NotRequired[str]
 
     # Character Data
     create_new_character: NotRequired[bool]
@@ -335,7 +341,7 @@ def ask_character_details(state: StateSchema) -> StateSchema:
 @traceable(run_type="chain", name="LLM Generate Character Data")
 def llm_generate_character_data(state: StateSchema) -> StateSchema:
     cue = (
-        "The character data is being generated. "
+        "Your character data is being generated. "
         "This may take a few moments, please be patient..."
     )
     print("\n")
@@ -565,7 +571,85 @@ def llm_generate_lore_data(state: StateSchema) -> StateSchema:
     llm_dict: dict[str, str] = ast.literal_eval(llm_response)
 
     state["llm_generated_data"] = [llm_dict]
+    return state
 
+
+# ------------------------------------------------------------------ #
+#                           STORY FUNCTIONS                          #
+# ------------------------------------------------------------------ #
+
+
+@traceable(run_type="chain", name="LLM Generate World Summary")
+def llm_generate_world_summary(state: StateSchema) -> StateSchema:
+    prompt_template = """
+    ## ROLE
+    You are a world chronicler and narrator for a procedural RPG game.
+
+    ## OBJECTIVE
+    Your task is to generate a clear, neutral and immersive summary of the world "{{world_name}}", intended to be used:
+    - At the beginning of the game to introduce the story,
+    - At any time to recall what has happened so far,
+    - As a simple reference for players who may not be fluent in English.
+
+    ## INPUT CONTEXTS
+
+    --- WORLD CONTEXT ---
+    {{world_context}}
+
+    --- LORE CONTEXT ---
+    {{lore_context}}
+
+    --- CHARACTER CONTEXT ---
+    {{character_context}}
+
+    ## STYLE & CONSTRAINTS
+    - Use **simple, clear language** that is easy to understand even for non-native English speakers.
+    - Focus on **summarizing the main points** of the world's story, history, events, and characters so far.
+    - Avoid abstract metaphors, poetic or cryptic phrasing.
+    - Do not overcomplicate names or sentences.
+    - The tone should be **neutral and informative**, but not robotic.
+    - Do not address the player directly (no "you").
+    - Do not include markdown, YAML, code blocks, or bullet points.
+
+    ## FORMAT
+    Output a **single raw string** composed of **one or two short paragraphs** (max ~100 words per paragraph) that cover:
+
+    - The current state and setting of the world
+    - What has happened in the story so far
+    - Any relevant characters or recent events
+
+    !!! DO NOT USE MARKDOWN, YAML, OR FORMATTING. OUTPUT ONLY A RAW STRING. !!!
+    """
+
+    prompt = PromptTemplate.from_template(prompt_template, template_format="jinja2")
+    formatted_prompt = prompt.format(
+        world_name=state.get("world_name", "World name not provided."),
+        world_context=state.get("world_context", "No world context available."),
+        lore_context=state.get("lore_context", "No lore context available."),
+        character_context=state.get(
+            "character_context", "No character context available."
+        ),
+        world_id=state.get("world_id", str(uuid4())),
+    )
+
+    truncated_prompt = truncate_structured_prompt(formatted_prompt)
+
+    llm_model = ChatOpenAI(
+        model=LLM_NAME,
+        temperature=0.8,
+        streaming=False,
+        max_retries=2,
+    )
+
+    raw_output = llm_model.invoke(truncated_prompt).content
+    llm_response = (
+        raw_output.strip() if isinstance(raw_output, str) else str(raw_output)
+    )
+
+    print("\n")
+    print(textwrap.fill(f"AI: 📖 {llm_response}", width=TERMINAL_WIDTH))
+
+    state["world_summary"] = llm_response
     return state
 
 
@@ -703,6 +787,9 @@ graph.add_node("get_lore_context", get_lore_context)
 graph.add_node("get_character_context", get_character_context)
 graph.add_node("llm_generate_lore_data", llm_generate_lore_data)
 
+# World Summary Nodes
+graph.add_node("llm_generate_world_summary", llm_generate_world_summary)
+
 # Validators
 graph.add_node("check_input_validity", check_input_validity)
 
@@ -779,9 +866,12 @@ graph.add_conditional_edges(
     {
         "__from_world__": "ask_new_character_name",
         "__from_character__": "get_world_context",
-        "__from_lore__": END,
+        "__from_lore__": "llm_generate_world_summary",
     },
 )
+
+# World summary generation block
+graph.add_edge("llm_generate_world_summary", END)
 
 # Final state
 main_graph = graph.compile()

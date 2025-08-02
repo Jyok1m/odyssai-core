@@ -1,12 +1,10 @@
 # Libs
-import os
 import chromadb
 import ast
 import textwrap
 import shutil
 from uuid import uuid4
-from functools import partial
-from typing_extensions import TypedDict, Literal, Required, NotRequired
+from typing_extensions import TypedDict, Literal, NotRequired
 
 # Langchain
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
@@ -34,7 +32,10 @@ class StateSchema(TypedDict):
     # World Data
     world_id: NotRequired[str]
     world_name: NotRequired[str]
-    llm_gen_data: NotRequired[list[dict[str, str]]]  # Swap data for better handling
+    llm_generated_data: NotRequired[
+        list[dict[str, str]]
+    ]  # Swap data for better handling
+    active_step: NotRequired[Literal["world_creation"]]
 
     # Init Data
     world_genre: NotRequired[str]
@@ -162,6 +163,8 @@ def ask_story_directives(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="LLM Generate World Data")
 def llm_generate_world_data(state: StateSchema) -> StateSchema:
+    state["active_step"] = "world_creation"
+
     prompt_template = """
     ## ROLE
     You are a narrative generator for a procedural RPG game.
@@ -220,20 +223,49 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
 
     llm_dict: dict[str, str] = ast.literal_eval(llm_response)
 
-    state["llm_gen_data"] = [llm_dict]
+    state["llm_generated_data"] = [llm_dict]
     return state
 
 
-# @traceable(run_type="chain", name="Get world ID")
-# def get_or_create_world_id(state: StateSchema) -> StateSchema:
-#     db_collection = Chroma(
-#         client=CHROMA_DB_CLIENT,
-#         embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
-#         collection_name="worlds",
-#     )
-#     result = db_collection.get(where={"world_name": state.get("world_name", "")})
-#     state["world_id"] = result["ids"][0] if result["ids"] else str(uuid4())
-#     return state
+# ------------------------------------------------------------------ #
+#                          UTILITY FUNCTIONS                         #
+# ------------------------------------------------------------------ #
+
+
+@traceable(run_type="chain", name="Save list of documents to ChromaDB")
+def save_documents_to_chroma(state: StateSchema) -> StateSchema:
+    world_id = state.get("world_id", "")
+    llm_generated_data = state.get("llm_generated_data", [])
+
+    # Convert to LangChain Document format
+    documents_to_save = [
+        Document(
+            page_content=document.get("page_content", ""),
+            metadata=document.get("metadata", {}),
+        )
+        for document in llm_generated_data
+    ]
+
+    if state.get("active_step") == "world_creation":
+        ids = [world_id]
+        collection_name = "worlds"
+    else:
+        ids = [str(uuid4()) for _ in documents_to_save]
+        collection_name = "test"
+
+    db_collection = Chroma(
+        client=CHROMA_DB_CLIENT,
+        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        collection_name=collection_name,
+    )
+
+    db_collection.add_documents(documents_to_save, ids=ids)
+
+    cue = "The world data has been successfully saved to the Chroma database! "
+
+    print("\n")
+    print(textwrap.fill(f"AI: ✅ {cue}", width=TERMINAL_WIDTH))
+    return state
 
 
 # ------------------------------------------------------------------ #
@@ -284,11 +316,13 @@ graph.add_node("ask_story_directives", ask_story_directives)
 
 # World Generation Nodes
 graph.add_node("llm_generate_world_data", llm_generate_world_data)
-# graph.add_node("get_or_create_world_id", get_or_create_world_id)
 
 # Validators
 graph.add_node("check_input_validity", check_input_validity)
 graph.add_node("route_world_creation", route_world_creation)
+
+# Utility Functions
+graph.add_node("save_documents_to_chroma", save_documents_to_chroma)
 
 # ---------------------------- Workflow ---------------------------- #
 
@@ -316,7 +350,7 @@ graph.add_conditional_edges(
 )
 graph.add_edge("ask_world_genre", "ask_story_directives")
 graph.add_edge("ask_story_directives", "llm_generate_world_data")
-
-graph.add_edge("llm_generate_world_data", END)
+graph.add_edge("llm_generate_world_data", "save_documents_to_chroma")
+graph.add_edge("save_documents_to_chroma", END)
 
 main_graph = graph.compile()

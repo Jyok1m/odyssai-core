@@ -59,6 +59,7 @@ class StateSchema(TypedDict):
 
     # Character Data
     create_new_character: NotRequired[bool]
+    character_id: NotRequired[str]
     character_name: NotRequired[str]
     character_gender: NotRequired[str]
     character_description: NotRequired[str]
@@ -290,7 +291,12 @@ def check_character_exists(state: StateSchema) -> StateSchema:
         embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
         collection_name="characters",
     )
-    result = db_collection.get(where={"world_id": state.get("world_id", "")})
+    result = db_collection.get(
+        where={
+            "world_id": state.get("world_id", ""),
+            "character_name": state.get("character_name", ""),
+        }
+    )
     character_exists = len(result["ids"]) > 0
 
     if character_exists and state.get("create_new_character"):
@@ -314,6 +320,7 @@ def check_character_exists(state: StateSchema) -> StateSchema:
 
     state["must_restart_character"] = False
     state["create_new_character"] = not character_exists
+    state["character_id"] = result["ids"][0] if result["ids"] else str(uuid4())
     return state
 
 

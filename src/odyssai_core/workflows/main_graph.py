@@ -42,7 +42,9 @@ class StateSchema(TypedDict):
     llm_generated_data: NotRequired[
         list[dict[str, str]]
     ]  # Swap data for better handling
-    active_step: NotRequired[Literal["world_creation", "lore_generation"]]
+    active_step: NotRequired[
+        Literal["world_creation", "lore_generation", "character_creation"]
+    ]
 
     # Global Data
     world_context: NotRequired[str]
@@ -52,7 +54,6 @@ class StateSchema(TypedDict):
     create_new_character: NotRequired[bool]
     character_name: NotRequired[str]
     character_gender: NotRequired[str]
-    character_age: NotRequired[int]
     character_description: NotRequired[str]
     must_restart_character: NotRequired[bool]
 
@@ -304,6 +305,110 @@ def check_character_exists(state: StateSchema) -> StateSchema:
     return state
 
 
+@traceable(run_type="chain", name="Ask for character details")
+def ask_character_details(state: StateSchema) -> StateSchema:
+    cue = "Please provide additional details about your character: "
+    print("\n")
+    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
+
+    character_gender = input("Character Gender: ")
+    character_description = input("Character Description: ")
+
+    state["character_gender"] = (
+        character_gender.strip() if character_gender else "Generate a character gender"
+    )
+    state["character_description"] = (
+        character_description.strip()
+        if character_description
+        else "Generate a character description"
+    )
+
+    return state
+
+
+@traceable(run_type="chain", name="LLM Generate Character Data")
+def llm_generate_character_data(state: StateSchema) -> StateSchema:
+    cue = (
+        "The character data is being generated. "
+        "This may take a few moments, please be patient."
+    )
+    print("\n")
+    print(textwrap.fill(f"AI: 🔎 {cue}", width=TERMINAL_WIDTH))
+
+    state["active_step"] = "character_creation"
+
+    prompt_template = """
+    ## ROLE
+    You are a character generator for a procedural RPG game.
+    You create vivid, lore-aligned characters to inhabit fantastical or science-fictional worlds.
+
+    ## OBJECTIVE
+    Your task is to generate a detailed and engaging character profile for "{{character_name}}" based on the following information:
+
+    - Character gender: {{character_gender}}
+    - Character concept or description: "{{character_description}}"
+    - World name: {{world_name}}
+    - World ID: {{world_id}}
+
+    Use the world as inspiration, but focus on making the character unique and interesting, with a clear personality, role, and origin.
+
+    ## FORMAT & STYLE
+    - Write one well-developed paragraph presenting the character’s background, personality traits, abilities, and narrative potential.
+    - Avoid clichés unless deliberately subverted.
+    - Stay immersive but accessible — use clear language, like in a game character codex.
+    - Do NOT include markdown, YAML, or bullet formatting.
+    - Output a single valid Python dictionary using the exact format below:
+
+    {
+        "page_content": "string" (a richly written character overview),
+        "metadata": {
+            "character_name": "{{character_name}}" (in lowercase),
+            "world_id": "{{world_id}}",
+            "world_name": "{{world_name}}" (in lowercase),
+            "character_gender": "{{character_gender}}",
+            "short_description": "resumé of the character's role and personality",
+        }
+    }
+
+    !!! DO NOT USE MARKDOWN OR FORMATTING LIKE ```python. OUTPUT ONLY A RAW PYTHON DICTIONARY. !!!
+    """
+
+    prompt = PromptTemplate.from_template(prompt_template, template_format="jinja2")
+    formatted_prompt = prompt.format(
+        character_name=state.get(
+            "character_name",
+            "Character name not provided. Generate a default name.",
+        ),
+        world_id=state.get("world_id", str(uuid4())),
+        world_name=state.get(
+            "world_name",
+            "World name not provided. Generate a default name.",
+        ),
+        character_gender=state.get(
+            "character_gender",
+            "Character gender not provided. Generate a default gender.",
+        ),
+        character_description=state.get(
+            "character_description",
+            "Character description not provided. Generate a default description.",
+        ),
+    )
+    truncated_prompt = truncate_structured_prompt(formatted_prompt)
+    llm_model = ChatOpenAI(
+        model=LLM_NAME,
+        temperature=0.7,
+        streaming=False,
+        max_retries=2,
+    )
+    raw_output = llm_model.invoke(truncated_prompt).content
+    llm_response = (
+        raw_output.strip() if isinstance(raw_output, str) else str(raw_output)
+    )
+    llm_dict: dict[str, str] = ast.literal_eval(llm_response)
+    state["llm_generated_data"] = [llm_dict]
+    return state
+
+
 # ------------------------------------------------------------------ #
 #                      LORE GENERATION FUNCTIONS                     #
 # ------------------------------------------------------------------ #
@@ -543,19 +648,19 @@ graph = StateGraph(StateSchema)
 
 # ------------------------------ Nodes ----------------------------- #
 
-# Initialisation Nodes
+# World Generation Nodes
 graph.add_node("ask_if_new_world", ask_if_new_world)
 graph.add_node("ask_world_name", ask_world_name)
 graph.add_node("check_world_exists", check_world_exists)
 graph.add_node("ask_world_genre", ask_world_genre)
 graph.add_node("ask_story_directives", ask_story_directives)
-
-# World Generation Nodes
 graph.add_node("llm_generate_world_data", llm_generate_world_data)
 
 # Character Creation Nodes
 graph.add_node("ask_new_character_name", ask_new_character_name)
 graph.add_node("check_character_exists", check_character_exists)
+graph.add_node("ask_character_details", ask_character_details)
+graph.add_node("llm_generate_character_data", llm_generate_character_data)
 
 # Lore Generation Nodes
 graph.add_node("get_world_context", get_world_context)
@@ -617,10 +722,12 @@ graph.add_conditional_edges(
     route_character_creation,
     {
         "__must_restart_character__": "ask_new_character_name",
-        "__must_configure__": END,
+        "__must_configure__": "ask_character_details",
         "__exists__": END,
     },
 )
+graph.add_edge("ask_character_details", "llm_generate_character_data")
+graph.add_edge("llm_generate_character_data", "save_documents_to_chroma")
 
 # Lore creation block
 graph.add_edge("get_world_context", "get_lore_context")
@@ -633,6 +740,7 @@ graph.add_conditional_edges(
     route_after_saving,
     {
         "__from_world__": "ask_new_character_name",
+        "__from_character__": "get_world_context",
         "__from_lore__": END,
     },
 )

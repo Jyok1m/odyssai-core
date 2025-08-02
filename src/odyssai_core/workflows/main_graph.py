@@ -122,7 +122,7 @@ def ask_world_genre(state: StateSchema) -> StateSchema:
 
     print(textwrap.fill(f"\nAI: {cue}", width=TERMINAL_WIDTH))
     world_genre = input(" Answer: ")
-    state["world_genre"] = world_genre.strip()
+    state["world_genre"] = world_genre.strip() if world_genre else "Choose for me"
     state["user_input"] = world_genre.strip()
     return state
 
@@ -139,7 +139,9 @@ def ask_story_directives(state: StateSchema) -> StateSchema:
 
     print(textwrap.fill(f"\nAI: {cue}", width=TERMINAL_WIDTH))
     story_directives = input(" Answer: ")
-    state["story_directives"] = story_directives.strip()
+    state["story_directives"] = (
+        story_directives.strip() if story_directives else "Choose for me"
+    )
     state["user_input"] = story_directives.strip()
     return state
 
@@ -159,7 +161,7 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
     Your task is to generate an overview of the world "{{world_name}}" (in Normal case).
 
     ## CREATIVE EXPECTATIONS
-    - The theme of the world must be: {{world_genre}}
+    - The theme / genre of the world must respect the instruction: {{world_genre}}
     - You must respect the following directives: {{story_directives}}
 
     ## FORMAT

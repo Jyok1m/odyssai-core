@@ -1,22 +1,117 @@
 [project]
 name = "odyssai-core"
 version = "0.1.0"
-description = "Core AI module of the Odyssai project"
+description = "Core AI module of the Odyssai project - A procedural RPG assistant with voice synthesis and world creation"
 authors = [
   { name = "Joachim Jasmin", email = "joachim.jasmin-dev@proton.me" }
 ]
 readme = "README.md"
-requires-python = ">=3.10"
-dependencies = [
-  "openai",
-  "langchain",
-  "chromadb",
-  "pydantic"
+license = { text = "MIT" }
+requires-python = ">=3.12"
+keywords = ["AI", "RPG", "procedural-generation", "langchain", "text-to-speech", "voice-recognition"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Games/Entertainment :: Role-Playing",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Multimedia :: Sound/Audio :: Speech",
 ]
+
+dependencies = [
+  "openai>=1.0.0",
+  "langchain>=0.3.0",
+  "langchain-openai>=0.3.0",
+  "langchain-community>=0.3.0",
+  "langchain-chroma>=0.2.0",
+  "langgraph>=0.6.0",
+  "langsmith>=0.3.0",
+  "chromadb>=1.0.0",
+  "pydantic>=2.0.0",
+  "google-cloud-texttospeech>=2.27.0",
+  "python-dotenv>=1.0.0",
+  "python-sounddevice>=0.5.0",
+  "librosa>=0.11.0",
+  "typing-extensions>=4.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0.0",
+  "pytest-cov>=4.0.0",
+  "black>=23.0.0",
+  "isort>=5.0.0",
+  "flake8>=6.0.0",
+  "mypy>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Jyok1m/odyssai-core"
+Repository = "https://github.com/Jyok1m/odyssai-core"
+Issues = "https://github.com/Jyok1m/odyssai-core/issues"
+
+[project.scripts]
+odyssai = "odyssai_core.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+odyssai_core = ["config/*", "constants/*"]
+
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  \.git
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["odyssai_core"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+  "--cov=odyssai_core",
+  "--cov-report=term-missing",
+  "--cov-report=html",
+  "--strict-markers",
+]
+markers = [
+  "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+  "integration: marks tests as integration tests",
+]

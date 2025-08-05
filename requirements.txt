@@ -14,7 +14,7 @@ blinker @ file:///home/conda/feedstock_root/build_artifacts/blinker_173109640913
 Brotli @ file:///Users/runner/miniforge3/conda-bld/brotli-split_1749229914644/work
 build @ file:///home/conda/feedstock_root/build_artifacts/python-build_1733230610871/work
 cachetools @ file:///home/conda/feedstock_root/build_artifacts/cachetools_1740094013202/work
-certifi @ file:///home/conda/feedstock_root/build_artifacts/certifi_1752493286596/work/certifi
+certifi @ file:///home/conda/feedstock_root/build_artifacts/certifi_1754231422783/work/certifi
 cffi @ file:///Users/runner/miniforge3/conda-bld/cffi_1725560578465/work
 charset-normalizer @ file:///home/conda/feedstock_root/build_artifacts/charset-normalizer_1746214863626/work
 chromadb @ file:///Users/runner/miniforge3/conda-bld/chromadb_1751541806845/work
@@ -145,7 +145,7 @@ pycparser @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_
 pydantic @ file:///home/conda/feedstock_root/build_artifacts/pydantic_1749927112905/work
 pydantic-settings @ file:///home/conda/feedstock_root/build_artifacts/pydantic-settings_1750801564484/work
 pydantic_core @ file:///Users/runner/miniforge3/conda-bld/bld/rattler-build_pydantic-core_1746625327/work
-pydub @ file:///home/conda/feedstock_root/build_artifacts/pydub_1734638032476/work
+pydub==0.25.1
 Pygments @ file:///home/conda/feedstock_root/build_artifacts/pygments_1750615794071/work
 PyJWT @ file:///home/conda/feedstock_root/build_artifacts/pyjwt_1732782409051/work
 pyOpenSSL @ file:///home/conda/feedstock_root/build_artifacts/pyopenssl_1747560772891/work

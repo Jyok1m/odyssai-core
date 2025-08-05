@@ -121,7 +121,9 @@ def get_player_answer(cue: str) -> str:
 @traceable(run_type="chain", name="Ask player if they want to create a new world")
 def ask_if_new_world(state: StateSchema) -> StateSchema:
     cue = "Do you want to create a new world? (y/n)"
-    response = get_player_answer(cue)
+    print("\n")
+    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
+    response = input("Answer: ")
     state["create_new_world"] = response in ["yes", "y"]
     return state
 

@@ -150,7 +150,7 @@ def get_player_answer(cue: str) -> str:
 @traceable(run_type="chain", name="Ask player if they want to create a new world")
 def ask_if_new_world(state: StateSchema) -> StateSchema:
     cue = "Do you want to create a new world?"
-    response = get_player_answer(cue).lower()
+    response = input(f"{cue} (yes/no): ").strip().lower()
     state["create_new_world"] = response in ["yes", "y", "ye", "yup"]
     return state
 
@@ -826,7 +826,7 @@ def record_player_response(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="Ask if player wants to continue")
 def ask_to_continue_or_stop(state: StateSchema) -> StateSchema:
-    cue = "Would you like to continue the story or stop for now? (continue/stop)"
+    cue = "Would you like to continue the story or stop for now?"
     answer = get_player_answer(cue).strip().lower()
     state["continue_story"] = answer in ["continue", "yes", "y"]
     return state

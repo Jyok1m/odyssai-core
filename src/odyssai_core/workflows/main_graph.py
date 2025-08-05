@@ -16,6 +16,7 @@ from langgraph.graph import StateGraph, END
 from langsmith import traceable
 
 # Modules
+from ..utils.whisper import transcriber
 from ..utils.audio_session import recorder
 from ..utils.prompt_truncation import truncate_structured_prompt
 from ..config.settings import CHROMA_API_KEY, CHROMA_TENANT, CHROMA_DATABASE
@@ -782,7 +783,7 @@ def ask_to_continue_or_stop(state: StateSchema) -> StateSchema:
 
 
 # ------------------------------------------------------------------ #
-#                          SPEECH FUNCTIONS                          #
+#                        RECORDING FUNCTIONS                         #
 # ------------------------------------------------------------------ #
 
 
@@ -797,6 +798,22 @@ def start_audio_recording(state: StateSchema) -> StateSchema:
 def stop_audio_recording(state: StateSchema) -> StateSchema:
     audio_path = recorder.stop()
     state["audio_path"] = audio_path
+    return state
+
+
+# ------------------------------------------------------------------ #
+#                AUDIO TRANSCRIPTION FUNCTION                        #
+# ------------------------------------------------------------------ #
+
+
+@traceable(run_type="chain", name="Transcribe audio from file path")
+def transcribe_audio_file(state: StateSchema) -> StateSchema:
+    audio_path = state.get("audio_path")
+    if not audio_path:
+        raise ValueError("Missing 'audio_path' in state.")
+
+    transcript = transcriber.get_transcription(audio_path)
+    state["user_input"] = transcript.strip()
     return state
 
 
@@ -943,9 +960,12 @@ graph.add_node("llm_generate_next_prompt", llm_generate_next_prompt)
 graph.add_node("record_player_response", record_player_response)
 graph.add_node("ask_to_continue_or_stop", ask_to_continue_or_stop)
 
-# Audio Nodes
+# Recording Nodes
 graph.add_node("start_audio_recording", start_audio_recording)
 graph.add_node("stop_audio_recording", stop_audio_recording)
+
+# Audio Transcription Nodes
+graph.add_node("transcribe_audio_file", transcribe_audio_file)
 
 # Validators
 graph.add_node("check_input_validity", check_input_validity)

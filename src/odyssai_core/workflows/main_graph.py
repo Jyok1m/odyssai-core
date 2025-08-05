@@ -5,6 +5,7 @@ import textwrap
 import shutil
 import subprocess
 import time
+import threading
 from uuid import uuid4
 from datetime import datetime
 from typing_extensions import TypedDict, Literal, NotRequired
@@ -98,12 +99,23 @@ def play_text_using_google_tts(text: str) -> None:
     subprocess.run(["afplay", audio_path])
 
 
-def type_print(text: str, delay: float = 0.05, width: int = 80) -> None:
+def type_print(text: str, delay: float = 0.07, width: int = 80) -> None:
     wrapped = textwrap.fill(text, width=width)
     for char in wrapped:
         print(char, end="", flush=True)
         time.sleep(delay)
     print()
+
+
+def play_and_type(cue: str, width: int = 80):
+    # Lance la synthèse vocale en parallèle
+    tts_thread = threading.Thread(
+        target=play_text_using_google_tts, args=(cue,), daemon=True
+    )
+    tts_thread.start()
+
+    # Affiche le texte progressivement
+    type_print(f"AI: {cue}", width=width)
 
 
 # ------------------------------------------------------------------ #
@@ -113,8 +125,7 @@ def type_print(text: str, delay: float = 0.05, width: int = 80) -> None:
 
 def get_player_answer(cue: str) -> str:
     print("\n")
-    play_text_using_google_tts(cue)
-    type_print(f"AI: {cue}", width=TERMINAL_WIDTH)
+    play_and_type(cue, width=TERMINAL_WIDTH)
 
     if not VOICE_MODE_ENABLED:
         return input("Answer: ").strip()
@@ -140,8 +151,7 @@ def get_player_answer(cue: str) -> str:
 def ask_if_new_world(state: StateSchema) -> StateSchema:
     cue = "Do you want to create a new world?"
     print("\n")
-    play_text_using_google_tts(cue)
-    type_print(f"AI: {cue}", width=TERMINAL_WIDTH)
+    play_and_type(cue, width=TERMINAL_WIDTH)
     response = input("Answer: ")
     state["create_new_world"] = response in ["yes", "y"]
     return state
@@ -162,8 +172,7 @@ def ask_world_name(state: StateSchema) -> StateSchema:
             "or mention one by name if you’ve heard whispers of its legend."
         )
     print("\n")
-    play_text_using_google_tts(cue)
-    type_print(f"AI: {cue}", width=TERMINAL_WIDTH)
+    play_and_type(cue, width=TERMINAL_WIDTH)
     world_name = input("Answer: ")
     state["world_name"] = world_name.strip().lower()
     state["user_input"] = world_name.strip()
@@ -186,8 +195,7 @@ def check_world_exists(state: StateSchema) -> StateSchema:
             "Please restart the process and choose a different name."
         )
         print("\n")
-        play_text_using_google_tts(cue)
-        type_print(f"AI: {cue}", width=TERMINAL_WIDTH)
+        play_and_type(cue, width=TERMINAL_WIDTH)
         state["must_restart_init"] = True
         return state
     elif not world_exists and not state.get("create_new_world"):
@@ -196,8 +204,7 @@ def check_world_exists(state: StateSchema) -> StateSchema:
             "You must choose a different name or create a new world."
         )
         print("\n")
-        play_text_using_google_tts(cue)
-        type_print(f"AI: {cue}", width=TERMINAL_WIDTH)
+        play_and_type(cue, width=TERMINAL_WIDTH)
         state["must_restart_init"] = True
         return state
 
@@ -337,8 +344,7 @@ def ask_new_character_name(state: StateSchema) -> StateSchema:
         cue = "What is the name of the character you want to play as? "
 
     print("\n")
-    play_text_using_google_tts(cue)
-    type_print(f"AI: {cue}", width=TERMINAL_WIDTH)
+    play_and_type(cue, width=TERMINAL_WIDTH)
     character_name = input("Answer: ")
     state["character_name"] = character_name.strip().lower()
     state["user_input"] = character_name.strip()
@@ -368,8 +374,7 @@ def check_character_exists(state: StateSchema) -> StateSchema:
             "Please restart the process and choose a different name."
         )
         print("\n")
-        play_text_using_google_tts(cue)
-        type_print(f"AI: {cue}", width=TERMINAL_WIDTH)
+        play_and_type(cue, width=TERMINAL_WIDTH)
         state["must_restart_character"] = True
         return state
     elif not character_exists and not state.get("create_new_character"):
@@ -378,8 +383,7 @@ def check_character_exists(state: StateSchema) -> StateSchema:
             "You must choose a different name or create a new character."
         )
         print("\n")
-        play_text_using_google_tts(cue)
-        type_print(f"AI: {cue}", width=TERMINAL_WIDTH)
+        play_and_type(cue, width=TERMINAL_WIDTH)
         state["must_restart_character"] = True
         return state
 
@@ -393,8 +397,7 @@ def check_character_exists(state: StateSchema) -> StateSchema:
 def ask_character_details(state: StateSchema) -> StateSchema:
     cue = "Please provide additional details about your character. "
     print("\n")
-    play_text_using_google_tts(cue)
-    type_print(f"AI: {cue}", width=TERMINAL_WIDTH)
+    play_and_type(cue, width=TERMINAL_WIDTH)
     print("\n")
     character_gender = get_player_answer("Gender: ")
     character_description = get_player_answer("Description: ")
@@ -720,8 +723,7 @@ def llm_generate_world_summary(state: StateSchema) -> StateSchema:
     )
 
     print("\n")
-    play_text_using_google_tts(llm_response)
-    type_print(f"AI: {llm_response}", width=TERMINAL_WIDTH)
+    play_and_type(llm_response, width=TERMINAL_WIDTH)
 
     state["world_summary"] = llm_response
     return state
@@ -887,8 +889,7 @@ def check_input_validity(
     if not state.get("user_input"):
         cue = "It seems you haven't provided any input. Let's try again."
         print("\n")
-        play_text_using_google_tts(cue)
-        type_print(f"AI: {cue}", width=TERMINAL_WIDTH)
+        play_and_type(cue, width=TERMINAL_WIDTH)
         res = "__invalid__"
 
     state["user_input"] = ""

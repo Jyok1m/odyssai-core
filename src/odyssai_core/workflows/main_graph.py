@@ -16,6 +16,7 @@ from langgraph.graph import StateGraph, END
 from langsmith import traceable
 
 # Modules
+from ..utils.audio_session import recorder
 from ..utils.prompt_truncation import truncate_structured_prompt
 from ..config.settings import CHROMA_API_KEY, CHROMA_TENANT, CHROMA_DATABASE
 from ..constants.llm_models import LLM_NAME, EMBEDDING_MODEL
@@ -62,6 +63,9 @@ class StateSchema(TypedDict):
     # Gameplay Data
     ai_question: NotRequired[str]
     continue_story: NotRequired[bool]
+
+    # Audio Data
+    audio_path: NotRequired[str]
 
     # Character Data
     create_new_character: NotRequired[bool]
@@ -778,6 +782,25 @@ def ask_to_continue_or_stop(state: StateSchema) -> StateSchema:
 
 
 # ------------------------------------------------------------------ #
+#                          SPEECH FUNCTIONS                          #
+# ------------------------------------------------------------------ #
+
+
+@traceable(run_type="chain", name="Start Audio Recording")
+def start_audio_recording(state: StateSchema) -> StateSchema:
+    if not recorder.is_recording:
+        recorder.start()
+    return state
+
+
+@traceable(run_type="chain", name="Stop Audio Recording")
+def stop_audio_recording(state: StateSchema) -> StateSchema:
+    audio_path = recorder.stop()
+    state["audio_path"] = audio_path
+    return state
+
+
+# ------------------------------------------------------------------ #
 #                          UTILITY FUNCTIONS                         #
 # ------------------------------------------------------------------ #
 
@@ -919,6 +942,10 @@ graph.add_node("get_event_context", get_event_context)
 graph.add_node("llm_generate_next_prompt", llm_generate_next_prompt)
 graph.add_node("record_player_response", record_player_response)
 graph.add_node("ask_to_continue_or_stop", ask_to_continue_or_stop)
+
+# Audio Nodes
+graph.add_node("start_audio_recording", start_audio_recording)
+graph.add_node("stop_audio_recording", stop_audio_recording)
 
 # Validators
 graph.add_node("check_input_validity", check_input_validity)

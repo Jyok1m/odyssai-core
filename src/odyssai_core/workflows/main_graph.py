@@ -3,6 +3,8 @@ import chromadb
 import ast
 import textwrap
 import shutil
+import subprocess
+import time
 from uuid import uuid4
 from datetime import datetime
 from typing_extensions import TypedDict, Literal, NotRequired
@@ -16,7 +18,8 @@ from langgraph.graph import StateGraph, END
 from langsmith import traceable
 
 # Modules
-from ..utils.whisper import transcriber
+from ..utils.google_tts import text_to_speech
+from ..utils.whisper import transcribe_audio
 from ..utils.audio_session import recorder
 from ..utils.prompt_truncation import truncate_structured_prompt
 from ..config.settings import CHROMA_API_KEY, CHROMA_TENANT, CHROMA_DATABASE
@@ -85,18 +88,33 @@ class StateSchema(TypedDict):
 
 @traceable(run_type="tool", name="Transcribe audio from file path")
 def transcribe_audio_file(audio_path: str) -> str:
-    transcript = transcriber.get_transcription(audio_path)
+    transcript = transcribe_audio(audio_path)
     return transcript.strip()
 
 
+@traceable(run_type="tool", name="Play text using Google TTS")
+def play_text_using_google_tts(text: str) -> None:
+    audio_path = text_to_speech(text)
+    subprocess.run(["afplay", audio_path])
+
+
+def type_print(text: str, delay: float = 0.05, width: int = 80) -> None:
+    wrapped = textwrap.fill(text, width=width)
+    for char in wrapped:
+        print(char, end="", flush=True)
+        time.sleep(delay)
+    print()
+
+
 # ------------------------------------------------------------------ #
-#                  PLAYER INPUT (VOICE OR TEXT) UTILITY             #
+#                  PLAYER INPUT (VOICE OR TEXT) UTILITY              #
 # ------------------------------------------------------------------ #
 
 
 def get_player_answer(cue: str) -> str:
     print("\n")
-    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
+    play_text_using_google_tts(cue)
+    type_print(f"AI: {cue}", width=TERMINAL_WIDTH)
 
     if not VOICE_MODE_ENABLED:
         return input("Answer: ").strip()
@@ -120,9 +138,10 @@ def get_player_answer(cue: str) -> str:
 
 @traceable(run_type="chain", name="Ask player if they want to create a new world")
 def ask_if_new_world(state: StateSchema) -> StateSchema:
-    cue = "Do you want to create a new world? (y/n)"
+    cue = "Do you want to create a new world?"
     print("\n")
-    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
+    play_text_using_google_tts(cue)
+    type_print(f"AI: {cue}", width=TERMINAL_WIDTH)
     response = input("Answer: ")
     state["create_new_world"] = response in ["yes", "y"]
     return state
@@ -143,7 +162,8 @@ def ask_world_name(state: StateSchema) -> StateSchema:
             "or mention one by name if you’ve heard whispers of its legend."
         )
     print("\n")
-    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
+    play_text_using_google_tts(cue)
+    type_print(f"AI: {cue}", width=TERMINAL_WIDTH)
     world_name = input("Answer: ")
     state["world_name"] = world_name.strip().lower()
     state["user_input"] = world_name.strip()
@@ -166,7 +186,8 @@ def check_world_exists(state: StateSchema) -> StateSchema:
             "Please restart the process and choose a different name."
         )
         print("\n")
-        print(textwrap.fill(f"AI: ❌ {cue}", width=TERMINAL_WIDTH))
+        play_text_using_google_tts(cue)
+        type_print(f"AI: {cue}", width=TERMINAL_WIDTH)
         state["must_restart_init"] = True
         return state
     elif not world_exists and not state.get("create_new_world"):
@@ -175,7 +196,8 @@ def check_world_exists(state: StateSchema) -> StateSchema:
             "You must choose a different name or create a new world."
         )
         print("\n")
-        print(textwrap.fill(f"AI: ❌ {cue}", width=TERMINAL_WIDTH))
+        play_text_using_google_tts(cue)
+        type_print(f"AI: {cue}", width=TERMINAL_WIDTH)
         state["must_restart_init"] = True
         return state
 
@@ -315,7 +337,8 @@ def ask_new_character_name(state: StateSchema) -> StateSchema:
         cue = "What is the name of the character you want to play as? "
 
     print("\n")
-    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
+    play_text_using_google_tts(cue)
+    type_print(f"AI: {cue}", width=TERMINAL_WIDTH)
     character_name = input("Answer: ")
     state["character_name"] = character_name.strip().lower()
     state["user_input"] = character_name.strip()
@@ -345,7 +368,8 @@ def check_character_exists(state: StateSchema) -> StateSchema:
             "Please restart the process and choose a different name."
         )
         print("\n")
-        print(textwrap.fill(f"AI: ❌ {cue}", width=TERMINAL_WIDTH))
+        play_text_using_google_tts(cue)
+        type_print(f"AI: {cue}", width=TERMINAL_WIDTH)
         state["must_restart_character"] = True
         return state
     elif not character_exists and not state.get("create_new_character"):
@@ -354,7 +378,8 @@ def check_character_exists(state: StateSchema) -> StateSchema:
             "You must choose a different name or create a new character."
         )
         print("\n")
-        print(textwrap.fill(f"AI: ❌ {cue}", width=TERMINAL_WIDTH))
+        play_text_using_google_tts(cue)
+        type_print(f"AI: {cue}", width=TERMINAL_WIDTH)
         state["must_restart_character"] = True
         return state
 
@@ -368,7 +393,8 @@ def check_character_exists(state: StateSchema) -> StateSchema:
 def ask_character_details(state: StateSchema) -> StateSchema:
     cue = "Please provide additional details about your character. "
     print("\n")
-    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
+    play_text_using_google_tts(cue)
+    type_print(f"AI: {cue}", width=TERMINAL_WIDTH)
     print("\n")
     character_gender = get_player_answer("Gender: ")
     character_description = get_player_answer("Description: ")
@@ -694,7 +720,8 @@ def llm_generate_world_summary(state: StateSchema) -> StateSchema:
     )
 
     print("\n")
-    print(textwrap.fill(f"AI: 📖 {llm_response}", width=TERMINAL_WIDTH))
+    play_text_using_google_tts(llm_response)
+    type_print(f"AI: {llm_response}", width=TERMINAL_WIDTH)
 
     state["world_summary"] = llm_response
     return state
@@ -844,11 +871,6 @@ def save_documents_to_chroma(state: StateSchema) -> StateSchema:
     )
 
     db_collection.add_documents(documents_to_save, ids=ids)
-
-    cue = "The documents have been successfully saved to the Chroma database! "
-
-    print("\n")
-    print(textwrap.fill(f"AI: ✅ {cue}", width=TERMINAL_WIDTH))
     return state
 
 
@@ -865,7 +887,8 @@ def check_input_validity(
     if not state.get("user_input"):
         cue = "It seems you haven't provided any input. Let's try again."
         print("\n")
-        print(textwrap.fill(f"AI: ❌ {cue}", width=TERMINAL_WIDTH))
+        play_text_using_google_tts(cue)
+        type_print(f"AI: {cue}", width=TERMINAL_WIDTH)
         res = "__invalid__"
 
     state["user_input"] = ""

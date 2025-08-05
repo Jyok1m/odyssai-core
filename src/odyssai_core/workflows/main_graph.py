@@ -128,7 +128,7 @@ def get_player_answer(cue: str) -> str:
     play_and_type(cue, width=TERMINAL_WIDTH)
 
     if not VOICE_MODE_ENABLED:
-        return input("Answer: ").strip()
+        return input("Type you answer: ").strip()
 
     # If using voice input, run the 3-step voice pipeline manually
     recorder.start()
@@ -152,8 +152,8 @@ def ask_if_new_world(state: StateSchema) -> StateSchema:
     cue = "Do you want to create a new world?"
     print("\n")
     play_and_type(cue, width=TERMINAL_WIDTH)
-    response = input("Answer: ")
-    state["create_new_world"] = response in ["yes", "y"]
+    response = get_player_answer(cue).lower()
+    state["create_new_world"] = response in ["yes", "y", "ye", "yup"]
     return state
 
 
@@ -173,7 +173,7 @@ def ask_world_name(state: StateSchema) -> StateSchema:
         )
     print("\n")
     play_and_type(cue, width=TERMINAL_WIDTH)
-    world_name = input("Answer: ")
+    world_name = input("Type your answer: ")
     state["world_name"] = world_name.strip().lower()
     state["user_input"] = world_name.strip()
     return state
@@ -327,9 +327,9 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="Ask player if they want to create a new character")
 def ask_create_new_character(state: StateSchema) -> StateSchema:
-    cue = "Do you want to play as a new character? (y/n)"
+    cue = "Do you want to play as a new character?"
     response = get_player_answer(cue).lower()
-    state["create_new_character"] = response in ["yes", "y"]
+    state["create_new_character"] = response in ["yes", "y", "yup"]
     return state
 
 
@@ -345,7 +345,7 @@ def ask_new_character_name(state: StateSchema) -> StateSchema:
 
     print("\n")
     play_and_type(cue, width=TERMINAL_WIDTH)
-    character_name = input("Answer: ")
+    character_name = input("Type your answer: ")
     state["character_name"] = character_name.strip().lower()
     state["user_input"] = character_name.strip()
     return state

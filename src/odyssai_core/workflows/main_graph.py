@@ -99,7 +99,7 @@ def play_text_using_google_tts(text: str) -> None:
     subprocess.run(["afplay", audio_path])
 
 
-def type_print(text: str, delay: float = 0.07, width: int = 80) -> None:
+def type_print(text: str, delay: float = 0.05, width: int = 80) -> None:
     wrapped = textwrap.fill(text, width=width)
     for char in wrapped:
         print(char, end="", flush=True)
@@ -150,8 +150,6 @@ def get_player_answer(cue: str) -> str:
 @traceable(run_type="chain", name="Ask player if they want to create a new world")
 def ask_if_new_world(state: StateSchema) -> StateSchema:
     cue = "Do you want to create a new world?"
-    print("\n")
-    play_and_type(cue, width=TERMINAL_WIDTH)
     response = get_player_answer(cue).lower()
     state["create_new_world"] = response in ["yes", "y", "ye", "yup"]
     return state
@@ -399,8 +397,8 @@ def ask_character_details(state: StateSchema) -> StateSchema:
     print("\n")
     play_and_type(cue, width=TERMINAL_WIDTH)
     print("\n")
-    character_gender = get_player_answer("Gender: ")
-    character_description = get_player_answer("Description: ")
+    character_gender = get_player_answer("What is your character's gender? ")
+    character_description = get_player_answer("What is your character's description? ")
 
     state["character_gender"] = (
         character_gender.strip() if character_gender else "Generate a character gender"
@@ -807,7 +805,7 @@ def llm_generate_next_prompt(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="Record player response")
 def record_player_response(state: StateSchema) -> StateSchema:
-    response = get_player_answer("Your response: ")
+    response = get_player_answer("What do you want to do? ")
 
     character_id = state.get("character_id")
     collection = Chroma(

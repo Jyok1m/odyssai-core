@@ -99,7 +99,7 @@ def play_text_using_google_tts(text: str) -> None:
     subprocess.run(["afplay", audio_path])
 
 
-def type_print(text: str, delay: float = 0.03, width: int = 80) -> None:
+def type_print(text: str, delay: float = 0.05, width: int = 80) -> None:
     wrapped = textwrap.fill(text, width=width)
     for char in wrapped:
         print(char, end="", flush=True)
@@ -128,7 +128,7 @@ def get_player_answer(cue: str, force_type: bool = False) -> str:
     play_and_type(cue, width=TERMINAL_WIDTH)
 
     if not VOICE_MODE_ENABLED or force_type:
-        return input("Type you answer: ").strip()
+        return input("Type in your answer: ").strip()
 
     # If using voice input, run the 3-step voice pipeline manually
     input("Press Enter to record")
@@ -149,7 +149,11 @@ def get_player_answer(cue: str, force_type: bool = False) -> str:
 
 @traceable(run_type="chain", name="Ask player if they want to create a new world")
 def ask_if_new_world(state: StateSchema) -> StateSchema:
-    cue = "Welcome to Odyssai. Start by answering a few questions and let's get started!Do you want to create a new world? Respond with 'yes' or 'no'."
+    cue = (
+        "Welcome to Odyssai. "
+        "Start by answering a few questions and let's get started! "
+        "Do you want to create a new world? Respond by typing 'yes' or 'no'."
+    )
     response = get_player_answer(cue, force_type=True).lower()
     state["create_new_world"] = response in ["yes", "y"]
     return state
@@ -158,17 +162,9 @@ def ask_if_new_world(state: StateSchema) -> StateSchema:
 @traceable(run_type="chain", name="Ask for the name of the world")
 def ask_world_name(state: StateSchema) -> StateSchema:
     if state.get("create_new_world"):
-        cue = (
-            "What would you like to name your world? "
-            "You can choose a name that reflects its history, culture, dominant species, "
-            "or simply something that sounds powerful, mystical, or poetic."
-        )
+        cue = "How would you like to name your world?"
     else:
-        cue = (
-            "Which existing world would you like to enter? "
-            "You may choose a known realm you’ve visited before, "
-            "or mention one by name if you’ve heard whispers of its legend."
-        )
+        cue = "Which existing world would you like to enter?"
 
     world_name = get_player_answer(cue, force_type=True)
     state["world_name"] = world_name.strip().lower()
@@ -213,12 +209,7 @@ def check_world_exists(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="Ask for the genre of the world")
 def ask_world_genre(state: StateSchema) -> StateSchema:
-    cue = (
-        "Describe the world’s main genre — "
-        "is it hopeful or grim, ancient or futuristic, magical or technological? "
-        "Give as much detail as you’d like. "
-        "(Leave blank for a random genre)"
-    )
+    cue = "Describe the world’s main genre. Give as much detail as you would like. "
     world_genre = get_player_answer(cue)
     state["world_genre"] = (
         world_genre.strip() if world_genre else "Choose a random genre"
@@ -229,15 +220,7 @@ def ask_world_genre(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="Ask for story directives")
 def ask_story_directives(state: StateSchema) -> StateSchema:
-    cue = (
-        "Are there particular themes or narrative threads you’d like to explore? "
-        "Think in terms of emotional arcs (e.g. redemption, betrayal), "
-        "overarching goals (e.g. building alliances, resisting tyranny), "
-        "or narrative tones (e.g. tragic, hopeful, mysterious). "
-        "Let your imagination guide the story’s soul. "
-        "(Leave blank for random narrative threads)"
-    )
-
+    cue = "Are there particular themes or narrative threads you’d like to explore? Let your imagination guide the story’s soul."
     story_directives = get_player_answer(cue)
     state["user_input"] = story_directives.strip()
     return state
@@ -245,12 +228,9 @@ def ask_story_directives(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="LLM Generate World Data")
 def llm_generate_world_data(state: StateSchema) -> StateSchema:
-    cue = (
-        "The world data is being generated. "
-        "This may take a few moments, please be patient..."
-    )
+    cue = "I am generating the data for your new world. This may take a few moments, please be patient..."
     print("\n")
-    print(textwrap.fill(f"AI: ⏱️ {cue}", width=TERMINAL_WIDTH))
+    play_and_type(cue, width=TERMINAL_WIDTH)
 
     state["active_step"] = "world_creation"
 
@@ -324,7 +304,7 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="Ask player if they want to create a new character")
 def ask_create_new_character(state: StateSchema) -> StateSchema:
-    cue = "Do you want to play as a new character? Respond with 'yes' or 'no'."
+    cue = "Do you want to play as a new character? Respond by typing 'yes' or 'no'."
     response = get_player_answer(cue, force_type=True).lower()
     state["create_new_character"] = response in ["yes", "y"]
     return state
@@ -333,10 +313,7 @@ def ask_create_new_character(state: StateSchema) -> StateSchema:
 @traceable(run_type="chain", name="Ask for the name of the character")
 def ask_new_character_name(state: StateSchema) -> StateSchema:
     if state.get("create_new_character"):
-        cue = (
-            "What is the name of your character? "
-            "Choose a name that reflects their personality, background, or role in the world."
-        )
+        cue = "How would you like to name your character? "
     else:
         cue = "What is the name of the character you want to play as? "
 
@@ -390,10 +367,6 @@ def check_character_exists(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="Ask for character details")
 def ask_character_details(state: StateSchema) -> StateSchema:
-    cue = "Please provide additional details about your character. "
-    print("\n")
-    play_and_type(cue, width=TERMINAL_WIDTH)
-    print("\n")
     character_gender = get_player_answer("What is your character's gender? ")
     character_description = get_player_answer("What is your character's description? ")
 
@@ -411,12 +384,8 @@ def ask_character_details(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="LLM Generate Character Data")
 def llm_generate_character_data(state: StateSchema) -> StateSchema:
-    cue = (
-        "Your character data is being generated. "
-        "This may take a few moments, please be patient..."
-    )
-    print("\n")
-    print(textwrap.fill(f"AI: ⏱️ {cue}", width=TERMINAL_WIDTH))
+    cue = "I am generating your character data. This may take a few moments, please be patient..."
+    play_and_type(cue, width=TERMINAL_WIDTH)
 
     state["active_step"] = "character_creation"
 
@@ -561,12 +530,9 @@ def get_character_context(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="LLM Generate Lore Data")
 def llm_generate_lore_data(state: StateSchema) -> StateSchema:
-    cue = (
-        "The lore data is being generated. "
-        "This may take a few moments, please be patient..."
-    )
+    cue = "I am now imagining an additional layer of depth to the lore. This may take a few moments, please be patient..."
     print("\n")
-    print(textwrap.fill(f"AI: ⏱️ {cue}", width=TERMINAL_WIDTH))
+    play_and_type(cue, width=TERMINAL_WIDTH)
 
     state["active_step"] = "lore_generation"
 
@@ -652,6 +618,10 @@ def llm_generate_lore_data(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="LLM Generate World Summary")
 def llm_generate_world_summary(state: StateSchema) -> StateSchema:
+    cue = "I am now summarizing your story. This may take a few moments, please be patient..."
+    print("\n")
+    play_and_type(cue, width=TERMINAL_WIDTH)
+
     prompt_template = """
     ## ROLE
     You are a world chronicler and narrator for a procedural RPG game.
@@ -797,13 +767,16 @@ def llm_generate_next_prompt(state: StateSchema) -> StateSchema:
 
     collection.add_documents([doc])
     state["ai_question"] = result
+
+    print("\n")
+    play_and_type(result, width=TERMINAL_WIDTH)
     return state
 
 
 @traceable(run_type="chain", name="Record player response")
 def record_player_response(state: StateSchema) -> StateSchema:
+    time.sleep(7.5)
     response = get_player_answer("What do you want to do? ")
-
     character_id = state.get("character_id")
     collection = Chroma(
         client=CHROMA_DB_CLIENT,
@@ -823,9 +796,10 @@ def record_player_response(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="Ask if player wants to continue")
 def ask_to_continue_or_stop(state: StateSchema) -> StateSchema:
-    cue = "Would you like to continue the story or stop for now?"
-    answer = get_player_answer(cue).strip().lower()
-    state["continue_story"] = answer in ["continue", "yes", "y"]
+    time.sleep(7.5)
+    cue = "Do you wish to continue? Respond by typing 'yes' or 'no'."
+    answer = get_player_answer(cue, force_type=True).strip().lower()
+    state["continue_story"] = answer in ["yes", "y"]
     return state
 
 
@@ -1047,8 +1021,9 @@ graph.add_conditional_edges(
     },
 )
 
+graph.add_edge("llm_generate_world_summary", "ask_to_continue_or_stop")
+
 # World summary generation block
-graph.add_edge("llm_generate_world_summary", "get_event_context")
 graph.add_edge("get_event_context", "llm_generate_next_prompt")
 graph.add_edge("llm_generate_next_prompt", "record_player_response")
 graph.add_edge("record_player_response", "ask_to_continue_or_stop")

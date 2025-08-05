@@ -35,7 +35,7 @@ class _Transcriber:
         loader = GenericLoader.from_filesystem(
             path=audio_file_path,
             suffixes=[".mp3", ".wav", ".m4a"],
-            show_progress=True,
+            show_progress=False,
             parser=self.__parser,
         )
 

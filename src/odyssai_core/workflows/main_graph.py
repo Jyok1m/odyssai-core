@@ -25,6 +25,7 @@ from ..constants.llm_models import LLM_NAME, EMBEDDING_MODEL
 # Static variables
 CHROMA_DB_CLIENT = chromadb.CloudClient(CHROMA_TENANT, CHROMA_DATABASE, CHROMA_API_KEY)
 TERMINAL_WIDTH = shutil.get_terminal_size((80, 20)).columns
+VOICE_MODE_ENABLED = True
 
 # ------------------------------------------------------------------ #
 #                                SCHEMA                              #
@@ -78,6 +79,41 @@ class StateSchema(TypedDict):
 
 
 # ------------------------------------------------------------------ #
+#                       Audio Utility Functions                      #
+# ------------------------------------------------------------------ #
+
+
+@traceable(run_type="tool", name="Transcribe audio from file path")
+def transcribe_audio_file(audio_path: str) -> str:
+    transcript = transcriber.get_transcription(audio_path)
+    return transcript.strip()
+
+
+# ------------------------------------------------------------------ #
+#                  PLAYER INPUT (VOICE OR TEXT) UTILITY             #
+# ------------------------------------------------------------------ #
+
+
+def get_player_answer(cue: str) -> str:
+    print("\n")
+    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
+
+    if not VOICE_MODE_ENABLED:
+        return input("Answer: ").strip()
+
+    # If using voice input, run the 3-step voice pipeline manually
+    recorder.start()
+
+    print("\n")
+    print("AI: I am listening...")
+
+    input("")
+    audio_path = recorder.stop()
+    response = transcribe_audio_file(audio_path)
+    return response
+
+
+# ------------------------------------------------------------------ #
 #                     WORLD GENERATION FUNCTIONS                     #
 # ------------------------------------------------------------------ #
 
@@ -85,9 +121,7 @@ class StateSchema(TypedDict):
 @traceable(run_type="chain", name="Ask player if they want to create a new world")
 def ask_if_new_world(state: StateSchema) -> StateSchema:
     cue = "Do you want to create a new world? (y/n)"
-    print("\n")
-    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
-    response = input("Answer: ").strip().lower()
+    response = get_player_answer(cue)
     state["create_new_world"] = response in ["yes", "y"]
     return state
 
@@ -157,9 +191,7 @@ def ask_world_genre(state: StateSchema) -> StateSchema:
         "Give as much detail as you’d like. "
         "(Leave blank for a random genre)"
     )
-    print("\n")
-    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
-    world_genre = input("Answer: ")
+    world_genre = get_player_answer(cue)
     state["world_genre"] = (
         world_genre.strip() if world_genre else "Choose a random genre"
     )
@@ -178,12 +210,7 @@ def ask_story_directives(state: StateSchema) -> StateSchema:
         "(Leave blank for random narrative threads)"
     )
 
-    print("\n")
-    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
-    story_directives = input("Answer: ")
-    state["story_directives"] = (
-        story_directives.strip() if story_directives else "Choose random directives"
-    )
+    story_directives = get_player_answer(cue)
     state["user_input"] = story_directives.strip()
     return state
 
@@ -270,9 +297,7 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
 @traceable(run_type="chain", name="Ask player if they want to create a new character")
 def ask_create_new_character(state: StateSchema) -> StateSchema:
     cue = "Do you want to play as a new character? (y/n)"
-    print("\n")
-    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
-    response = input("Answer: ").strip().lower()
+    response = get_player_answer(cue).lower()
     state["create_new_character"] = response in ["yes", "y"]
     return state
 
@@ -343,8 +368,8 @@ def ask_character_details(state: StateSchema) -> StateSchema:
     print("\n")
     print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
     print("\n")
-    character_gender = input("Gender: ")
-    character_description = input("Description: ")
+    character_gender = get_player_answer("Gender: ")
+    character_description = get_player_answer("Description: ")
 
     state["character_gender"] = (
         character_gender.strip() if character_gender else "Generate a character gender"
@@ -751,9 +776,7 @@ def llm_generate_next_prompt(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="Record player response")
 def record_player_response(state: StateSchema) -> StateSchema:
-    print("\n")
-    print(textwrap.fill(f"AI: {state.get('ai_question', '')}", width=TERMINAL_WIDTH))
-    response = input("Your action: ").strip()
+    response = get_player_answer("Your response: ")
 
     character_id = state.get("character_id")
     collection = Chroma(
@@ -775,45 +798,8 @@ def record_player_response(state: StateSchema) -> StateSchema:
 @traceable(run_type="chain", name="Ask if player wants to continue")
 def ask_to_continue_or_stop(state: StateSchema) -> StateSchema:
     cue = "Would you like to continue the story or stop for now? (continue/stop)"
-    print("\n")
-    print(textwrap.fill(f"AI: {cue}", width=TERMINAL_WIDTH))
-    answer = input("Answer: ").strip().lower()
+    answer = get_player_answer(cue).strip().lower()
     state["continue_story"] = answer in ["continue", "yes", "y"]
-    return state
-
-
-# ------------------------------------------------------------------ #
-#                        RECORDING FUNCTIONS                         #
-# ------------------------------------------------------------------ #
-
-
-@traceable(run_type="chain", name="Start Audio Recording")
-def start_audio_recording(state: StateSchema) -> StateSchema:
-    if not recorder.is_recording:
-        recorder.start()
-    return state
-
-
-@traceable(run_type="chain", name="Stop Audio Recording")
-def stop_audio_recording(state: StateSchema) -> StateSchema:
-    audio_path = recorder.stop()
-    state["audio_path"] = audio_path
-    return state
-
-
-# ------------------------------------------------------------------ #
-#                AUDIO TRANSCRIPTION FUNCTION                        #
-# ------------------------------------------------------------------ #
-
-
-@traceable(run_type="chain", name="Transcribe audio from file path")
-def transcribe_audio_file(state: StateSchema) -> StateSchema:
-    audio_path = state.get("audio_path")
-    if not audio_path:
-        raise ValueError("Missing 'audio_path' in state.")
-
-    transcript = transcriber.get_transcription(audio_path)
-    state["user_input"] = transcript.strip()
     return state
 
 
@@ -959,13 +945,6 @@ graph.add_node("get_event_context", get_event_context)
 graph.add_node("llm_generate_next_prompt", llm_generate_next_prompt)
 graph.add_node("record_player_response", record_player_response)
 graph.add_node("ask_to_continue_or_stop", ask_to_continue_or_stop)
-
-# Recording Nodes
-graph.add_node("start_audio_recording", start_audio_recording)
-graph.add_node("stop_audio_recording", stop_audio_recording)
-
-# Audio Transcription Nodes
-graph.add_node("transcribe_audio_file", transcribe_audio_file)
 
 # Validators
 graph.add_node("check_input_validity", check_input_validity)

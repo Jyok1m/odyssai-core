@@ -50,6 +50,7 @@ googleapis-common-protos @ file:///home/conda/feedstock_root/build_artifacts/goo
 greenlet @ file:///Users/runner/miniforge3/conda-bld/greenlet_1749160212231/work
 grpcio @ file:///Users/runner/miniforge3/conda-bld/grpc-split_1751702880951/work
 grpcio-status @ file:///home/conda/feedstock_root/build_artifacts/grpcio-status_1751787580238/work
+gunicorn @ file:///Users/runner/miniforge3/conda-bld/gunicorn_1724955954112/work
 h11 @ file:///home/conda/feedstock_root/build_artifacts/h11_1745526374115/work
 h2 @ file:///home/conda/feedstock_root/build_artifacts/h2_1738578511449/work
 hf-xet @ file:///Users/runner/miniforge3/conda-bld/bld/rattler-build_hf-xet_1750541254/work

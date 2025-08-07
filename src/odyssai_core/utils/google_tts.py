@@ -6,7 +6,7 @@ class _Speaker:
     def __init__(
         self,
     ):
-        self.__client = texttospeech.TextToSpeechClient()
+        self.__client = None
         self.language_code = "en-US"
         self.voice_name = "en-US-Wavenet-D"
         self.output_path = None
@@ -14,6 +14,9 @@ class _Speaker:
     def synthesize(self, text: str):
         if not text or not isinstance(text, str):
             raise ValueError("Text must be a non-empty string.")
+
+        if self.__client is None:
+            self.__client = texttospeech.TextToSpeechClient()
 
         synthesis_input = texttospeech.SynthesisInput(text=text)
         audio_config = texttospeech.AudioConfig(

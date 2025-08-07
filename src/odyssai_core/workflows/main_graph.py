@@ -29,7 +29,7 @@ from ..constants.llm_models import LLM_NAME, EMBEDDING_MODEL
 # Static variables
 CHROMA_DB_CLIENT = chromadb.CloudClient(CHROMA_TENANT, CHROMA_DATABASE, CHROMA_API_KEY)
 TERMINAL_WIDTH = shutil.get_terminal_size((80, 20)).columns
-VOICE_MODE_ENABLED = True
+VOICE_MODE_ENABLED = False
 
 # ------------------------------------------------------------------ #
 #                                SCHEMA                              #
@@ -37,6 +37,8 @@ VOICE_MODE_ENABLED = True
 
 
 class StateSchema(TypedDict):
+    source: Literal["cli", "api"]
+
     # Init Data
     world_genre: NotRequired[str]
     story_directives: NotRequired[str]
@@ -188,18 +190,25 @@ def check_world_exists(state: StateSchema) -> StateSchema:
             "Please restart the process and choose a different name."
         )
         print("\n")
-        play_and_type(cue, width=TERMINAL_WIDTH)
-        state["must_restart_init"] = True
-        return state
+        if state.get("source") == "cli":
+            play_and_type(cue, width=TERMINAL_WIDTH)
+            state["must_restart_init"] = True
+            return state
+        else:
+            raise ValueError("World already exists")
+
     elif not world_exists and not state.get("create_new_world"):
         cue = (
             f"The world '{state.get('world_name')}' does not exist. "
             "You must choose a different name or create a new world."
         )
         print("\n")
-        play_and_type(cue, width=TERMINAL_WIDTH)
-        state["must_restart_init"] = True
-        return state
+        if state.get("source") == "cli":
+            play_and_type(cue, width=TERMINAL_WIDTH)
+            state["must_restart_init"] = True
+            return state
+        else:
+            raise ValueError("World does not exist")
 
     state["must_restart_init"] = False
     state["create_new_world"] = not world_exists

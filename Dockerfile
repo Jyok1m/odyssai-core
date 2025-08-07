@@ -1,12 +1,12 @@
-FROM python:3.12-slim
+FROM continuumio/miniconda3:latest
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY environment.yml .
+RUN conda env create -f environment.yml
+SHELL ["conda", "run", "-n", "odyssai", "/bin/bash", "-c"]
 
 COPY . .
-
 EXPOSE 9000
 
-CMD ["gunicorn", "-c", "gunicorn.conf.py", "src.odyssai_core.app:app"]
+CMD ["conda", "run", "-n", "odyssai", "gunicorn", "-c", "gunicorn.conf.py", "src.odyssai_core.app:app"]

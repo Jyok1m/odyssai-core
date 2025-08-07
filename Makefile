@@ -47,6 +47,7 @@ dev: ## Start in development mode
 	@echo ""
 	@eval "$$(conda shell.bash hook)" && \
 	conda activate $(CONDA_ENV) && \
+	export PYTHONPATH=./src && \
 	export BACKEND_PORT=$(PORT) && \
 	python src/odyssai_core/app.py
 
@@ -57,6 +58,7 @@ prod: ## Start in production mode with Gunicorn
 	@echo ""
 	@eval "$$(conda shell.bash hook)" && \
 	conda activate $(CONDA_ENV) && \
+	export PYTHONPATH=./src && \
 	export BACKEND_PORT=$(PORT) && \
 	gunicorn -c gunicorn.conf.py src.odyssai_core.app:app
 
@@ -88,6 +90,9 @@ docker-ps: ## View Docker container status
 
 test: ## Run tests (to be implemented)
 	@echo "$(YELLOW)⚠️  Tests not yet implemented$(NC)"
+	@eval "$$(conda shell.bash hook)" && \
+	conda activate $(CONDA_ENV) && \
+	export PYTHONPATH=./src
 
 clean: ## Clean temporary files and caches
 	@echo "$(BLUE)🧹 Cleaning up...$(NC)"
@@ -106,7 +111,7 @@ docker-clean: ## Clean Docker images and containers
 env-info: ## Display environment information
 	@echo "$(BLUE)📋 Environment information:$(NC)"
 	@echo "$(YELLOW)Python:$(NC)"
-	@eval "$$(conda shell.bash hook)" && conda activate $(CONDA_ENV) && python --version
+	@eval "$$(conda shell.bash hook)" && conda activate $(CONDA_ENV) && export PYTHONPATH=./src && python --version
 	@echo "$(YELLOW)Conda environment:$(NC)"
 	@conda info --envs | grep $(CONDA_ENV) || echo "Environment $(CONDA_ENV) not found"
 	@echo "$(YELLOW)Docker:$(NC)"

@@ -1,7 +1,11 @@
 import os
 from flask import Flask
+from odyssai_core.routes.api import api_bp
 
 app = Flask(__name__)
+
+# Enregistrer le blueprint API avec le préfixe /api
+app.register_blueprint(api_bp, url_prefix="/api")
 
 
 @app.route("/")

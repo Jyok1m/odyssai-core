@@ -29,7 +29,7 @@ def create_world():
     """
     state: main_graph.StateSchema = {
         "source": "api",
-        "create_new_world": False,
+        "create_new_world": True,
         "world_name": "test_world",
     }
 

@@ -24,6 +24,12 @@ class JoinGameRequestSchema(Dict):
     character_name: str
 
 
+class RegisterAnswerRequestSchema(Dict):
+    world_id: str
+    character_id: str
+    player_answer: str
+
+
 # Create the API blueprint
 api_bp = Blueprint("api", __name__)
 
@@ -341,5 +347,66 @@ def get_game_prompt():
             "world_id": result.get("world_id"),
             "character_id": result.get("character_id"),
             "ai_prompt": result.get("ai_question"),
+        }
+    ), 200
+
+
+@api_bp.route("/register-answer", methods=["POST"])
+def register_answer():
+    data: RegisterAnswerRequestSchema = request.get_json()
+
+    validation_result = check_empty_fields(
+        data, ["world_id", "character_id", "player_answer"]
+    )
+    if not validation_result["result"]:
+        return jsonify(validation_result), 400
+
+    state: main_graph.StateSchema = {
+        "source": "api",
+        "world_id": str(data["world_id"]).strip(),
+        "character_id": str(data["character_id"]).strip(),
+        "player_answer": str(data["player_answer"]).strip(),
+    }
+
+    try:
+        graph = main_graph.StateGraph(main_graph.StateSchema)
+
+        # Add nodes for register answer workflow
+        graph.add_node("check_world_exists_by_id", main_graph.check_world_exists_by_id)
+        graph.add_node(
+            "check_character_exists_by_id", main_graph.check_character_exists_by_id
+        )
+        graph.add_node("get_event_context", main_graph.get_event_context)
+        graph.add_node("record_player_response", main_graph.record_player_response)
+        graph.add_node(
+            "llm_generate_immediate_event_summary",
+            main_graph.llm_generate_immediate_event_summary,
+        )
+
+        # Set entry point
+        graph.set_entry_point("check_world_exists_by_id")
+
+        # Define workflow edges
+        graph.add_edge("check_world_exists_by_id", "check_character_exists_by_id")
+        graph.add_edge("check_character_exists_by_id", "get_event_context")
+        graph.add_edge("get_event_context", "record_player_response")
+        graph.add_edge("record_player_response", "llm_generate_immediate_event_summary")
+        graph.add_edge("llm_generate_immediate_event_summary", main_graph.END)
+
+        # Compile and execute workflow
+        workflow = graph.compile()
+        result = workflow.invoke(state)
+
+    except Exception as e:
+        return jsonify(
+            {"success": False, "error": str(e), "error_type": e.__class__.__name__}
+        ), 500
+
+    return jsonify(
+        {
+            "success": True,
+            "world_id": result.get("world_id"),
+            "character_id": result.get("character_id"),
+            "immediate_events": result.get("immediate_events"),
         }
     ), 200

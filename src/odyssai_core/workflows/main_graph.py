@@ -82,6 +82,8 @@ class StateSchema(TypedDict):
     character_gender: NotRequired[str]
     character_description: NotRequired[str]
     must_restart_character: NotRequired[bool]
+    player_answer: NotRequired[str]
+    immediate_events: NotRequired[str]
 
 
 # ------------------------------------------------------------------ #
@@ -774,6 +776,71 @@ def llm_generate_world_summary(state: StateSchema) -> StateSchema:
     return state
 
 
+@traceable(run_type="chain", name="LLM Generate Immediate Event Summary")
+def llm_generate_immediate_event_summary(state: StateSchema) -> StateSchema:
+    prompt_template = """
+    ## ROLE
+    You are a world narrator for a procedural RPG game.  
+    You tell the story of the world "{{world_name}}" in a simple, clear way.
+
+    ## OBJECTIVE
+    Write a short and immersive summary of what just happened.  
+    It will be used to summarize players what choix they made.
+    Use simple words and expressions so a 15-year-old teenager can understand everything.
+
+    ## INPUT CONTEXTS
+
+    --- EVENT CONTEXT ---
+    {{event_context}}
+
+    --- PLAYER ACTION WITHIN CONTEXT ---
+    {{player_answer}}
+
+    ## STYLE & CONSTRAINTS
+    - Use clear and easy-to-read language for non-native English speakers.
+    - Avoid poetic or overly complicated language.
+    - Keep names and sentences simple.
+    - Tone should be neutral and informative, but still engaging.
+    - Do not talk directly to the player (no "you").
+    - Do not include markdown, YAML, code blocks, or bullet points.
+
+    ## FORMAT
+    Return a **single raw string** of one or two short paragraphs (max ~100 words each) covering:
+    - The current state and setting of the story
+    - The event that just happened
+
+    !!! DO NOT USE MARKDOWN, YAML, OR FORMATTING. OUTPUT ONLY A RAW STRING. !!!
+    """
+
+    prompt = PromptTemplate.from_template(prompt_template, template_format="jinja2")
+    formatted_prompt = prompt.format(
+        world_name=state.get("world_name", "World name not provided."),
+        event_context=state.get("event_context", "No event context available yet."),
+        player_answer=state.get("player_answer", "No player answer available yet."),
+    )
+
+    truncated_prompt = truncate_structured_prompt(formatted_prompt)
+
+    llm_model = ChatOpenAI(
+        model=LLM_NAME,
+        temperature=0.8,
+        streaming=False,
+        max_retries=2,
+    )
+
+    raw_output = llm_model.invoke(truncated_prompt).content
+    llm_response = (
+        raw_output.strip() if isinstance(raw_output, str) else str(raw_output)
+    )
+
+    if state.get("source") == "cli":
+        print("\n")
+        play_and_type(llm_response, width=TERMINAL_WIDTH)
+
+    state["immediate_events"] = llm_response
+    return state
+
+
 # ------------------------------------------------------------------ #
 #                         GAMEPLAY FUNCTIONS                         #
 # ------------------------------------------------------------------ #
@@ -867,8 +934,9 @@ def llm_generate_next_prompt(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="Record player response")
 def record_player_response(state: StateSchema) -> StateSchema:
-    time.sleep(7.5)
-    response = get_player_answer("What do you want to do? ")
+    if state.get("source") == "cli":
+        time.sleep(7.5)
+        state["player_answer"] = get_player_answer("What do you want to do? ")
     character_id = state.get("character_id")
     collection = Chroma(
         client=CHROMA_DB_CLIENT,
@@ -876,7 +944,7 @@ def record_player_response(state: StateSchema) -> StateSchema:
         collection_name=f"{character_id}_events",
     )
     doc = Document(
-        page_content=response,
+        page_content=state.get("player_answer", ""),
         metadata={
             "source": "player",
             "timestamp": datetime.utcnow().isoformat(),

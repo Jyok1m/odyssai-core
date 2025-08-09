@@ -28,6 +28,58 @@ def health_check():
     ), 200
 
 
+@api_bp.route("/synopsis", methods=["GET"])
+def get_synopsis():
+    world_id = request.args.get("world_id")
+
+    if not world_id:
+        return jsonify({"error": "world_id parameter is required"}), 400
+
+    state: main_graph.StateSchema = {
+        "source": "api",
+        "world_id": world_id,
+    }
+
+    try:
+        graph = main_graph.StateGraph(main_graph.StateSchema)
+
+        # Add nodes for synopsis generation
+        graph.add_node("check_world_exists_by_id", main_graph.check_world_exists_by_id)
+        graph.add_node("get_world_context", main_graph.get_world_context)
+        graph.add_node("get_lore_context", main_graph.get_lore_context)
+        graph.add_node("get_character_context", main_graph.get_character_context)
+        graph.add_node(
+            "llm_generate_world_summary", main_graph.llm_generate_world_summary
+        )
+
+        # Set entry point
+        graph.set_entry_point("check_world_exists_by_id")
+
+        # Define workflow edges
+        graph.add_edge("check_world_exists_by_id", "get_world_context")
+        graph.add_edge("get_world_context", "get_lore_context")
+        graph.add_edge("get_lore_context", "get_character_context")
+        graph.add_edge("get_character_context", "llm_generate_world_summary")
+        graph.add_edge("llm_generate_world_summary", main_graph.END)
+
+        # Compile and execute workflow
+        workflow = graph.compile()
+        result = workflow.invoke(state)
+
+    except Exception as e:
+        return jsonify(
+            {"success": False, "error": str(e), "error_type": e.__class__.__name__}
+        ), 500
+
+    return jsonify(
+        {
+            "success": True,
+            "world_id": result.get("world_id"),
+            "synopsis": result.get("world_summary"),
+        }
+    ), 200
+
+
 @api_bp.route("/create-world", methods=["POST"])
 def create_world():
     data: CreateWorldRequestSchema = request.get_json()
@@ -75,7 +127,7 @@ def create_world():
         graph.add_edge("llm_generate_world_summary", main_graph.END)
 
         workflow = graph.compile()
-        result = workflow.invoke(state, config={"recursion_limit": 9999})
+        result = workflow.invoke(state)
 
     except Exception as e:
         return jsonify(

@@ -216,6 +216,22 @@ def check_world_exists(state: StateSchema) -> StateSchema:
     return state
 
 
+@traceable(run_type="chain", name="Check if world exists by id")
+def check_world_exists_by_id(state: StateSchema) -> StateSchema:
+    db_collection = Chroma(
+        client=CHROMA_DB_CLIENT,
+        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        collection_name="worlds",
+    )
+    result = db_collection.get(ids=[state.get("world_id", "")])
+    world_exists = result["ids"]
+
+    if not world_exists:
+        raise ValueError("World does not exist")
+    else:
+        return state
+
+
 @traceable(run_type="chain", name="Ask for the genre of the world")
 def ask_world_genre(state: StateSchema) -> StateSchema:
     cue = "Describe the world’s main genre. Give as much detail as you would like. "

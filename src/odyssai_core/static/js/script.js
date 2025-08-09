@@ -13,6 +13,21 @@ const endpoints = [
         }
     },
     {
+        method: "GET",
+        path: "/api/synopsis",
+        status: "Operational",
+        description: "Get a synopsis of an existing world",
+        response: "World synopsis based on world context, lore, and characters",
+        queryParams: {
+            world_id: "ac8918e7-ccd8-4cae-9b39-753f2994c46c"
+        },
+        exampleResponse: {
+            success: true,
+            synopsis: "In the world of terra novia, clumsy wizards dressed in kimonos duel with magic, often causing chaos and laughter. Ancient alien technology stands alongside enchanted scrolls, creating a land full of surprises. Eccentric guilds and colorful characters wander the landscape, engaging in comedic battles and heartwarming quests. Friendships are formed as guilds compete for glory, while unraveling ancient mysteries. In the misty valleys, the Llibrary of Kelezoa stands, built from the walls of a crashed alien ship. Here, sentient amphibious librarians keep enchanted scrolls that hold the secrets to the Universe's humor, offering spells that summon laughter and potions that taste like sunshine. The library's quiet corners whisper of laughter that could save or doom the world.",
+            world_id: "ac8918e7-ccd8-4cae-9b39-753f2994c46c"
+        }
+    },
+    {
         method: "POST",
         path: "/api/create-world",
         status: "Operational",
@@ -49,13 +64,17 @@ const createEndpointList = (endpoints) => {
             <div class="endpoint-body">
                 <div class="endpoint-description"><strong>Description:</strong> ${e.description}</div>
                 <div class="endpoint-description"><strong>Response:</strong> ${e.response}</div>
+                ${e.queryParams ? `
+                <div class="endpoint-description"><strong>Query Parameters:</strong></div>
+                <div class="response-example">${formatJson(e.queryParams)}</div>
+                ` : ""}
                 ${e.exampleBody ? `
                 <div class="endpoint-description"><strong>Example Request Body:</strong></div>
                 <div class="response-example">${formatJson(e.exampleBody)}</div>
                 ` : ""}
                 <div class="endpoint-description"><strong>Example Response:</strong></div>
                 <div class="response-example">${formatJson(e.exampleResponse)}</div>
-                ${e.method === 'GET' ? `<a href="${e.path}" class="try-button" target="_blank">🔗 Test</a>` : ""}
+                ${e.method === 'GET' ? `<a href="${e.path}${e.queryParams ? '?' + Object.keys(e.queryParams).map(key => key + '=' + e.queryParams[key]).join('&') : ''}" class="try-button" target="_blank">🔗 Test</a>` : ""}
             </div>
         </div>
         `

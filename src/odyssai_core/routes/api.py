@@ -281,3 +281,65 @@ def join_game():
             "world_summary": result.get("world_summary"),
         }
     ), 200
+
+
+@api_bp.route("/game-prompt", methods=["GET"])
+def get_game_prompt():
+    world_id = request.args.get("world_id")
+    character_id = request.args.get("character_id")
+
+    if not world_id:
+        return jsonify({"error": "world_id parameter is required"}), 400
+
+    if not character_id:
+        return jsonify({"error": "character_id parameter is required"}), 400
+
+    state: main_graph.StateSchema = {
+        "source": "api",
+        "world_id": world_id,
+        "character_id": character_id,
+    }
+
+    try:
+        graph = main_graph.StateGraph(main_graph.StateSchema)
+
+        # Add nodes for game prompt generation workflow
+        graph.add_node("check_world_exists_by_id", main_graph.check_world_exists_by_id)
+        graph.add_node(
+            "check_character_exists_by_id", main_graph.check_character_exists_by_id
+        )
+        graph.add_node("get_world_context", main_graph.get_world_context)
+        graph.add_node("get_lore_context", main_graph.get_lore_context)
+        graph.add_node("get_character_context", main_graph.get_character_context)
+        graph.add_node("get_event_context", main_graph.get_event_context)
+        graph.add_node("llm_generate_next_prompt", main_graph.llm_generate_next_prompt)
+
+        # Set entry point
+        graph.set_entry_point("check_world_exists_by_id")
+
+        # Define workflow edges
+        graph.add_edge("check_world_exists_by_id", "check_character_exists_by_id")
+        graph.add_edge("check_character_exists_by_id", "get_world_context")
+        graph.add_edge("get_world_context", "get_lore_context")
+        graph.add_edge("get_lore_context", "get_character_context")
+        graph.add_edge("get_character_context", "get_event_context")
+        graph.add_edge("get_event_context", "llm_generate_next_prompt")
+        graph.add_edge("llm_generate_next_prompt", main_graph.END)
+
+        # Compile and execute workflow
+        workflow = graph.compile()
+        result = workflow.invoke(state)
+
+    except Exception as e:
+        return jsonify(
+            {"success": False, "error": str(e), "error_type": e.__class__.__name__}
+        ), 500
+
+    return jsonify(
+        {
+            "success": True,
+            "world_id": result.get("world_id"),
+            "character_id": result.get("character_id"),
+            "ai_prompt": result.get("ai_question"),
+        }
+    ), 200

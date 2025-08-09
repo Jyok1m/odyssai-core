@@ -227,6 +227,24 @@ def check_world_exists_by_id(state: StateSchema) -> StateSchema:
     if not world_exists:
         raise ValueError("World does not exist")
     else:
+        state["world_name"] = result["metadatas"][0].get("world_name", "")
+        return state
+
+
+@traceable(run_type="chain", name="Check if character exists by id")
+def check_character_exists_by_id(state: StateSchema) -> StateSchema:
+    db_collection = Chroma(
+        client=CHROMA_DB_CLIENT,
+        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        collection_name="characters",
+    )
+    result = db_collection.get(ids=[state.get("character_id", "")])
+    character_exists = result["ids"]
+
+    if not character_exists:
+        raise ValueError("Character does not exist")
+    else:
+        state["character_name"] = result["metadatas"][0].get("character_name", "")
         return state
 
 
@@ -788,11 +806,21 @@ def llm_generate_next_prompt(state: StateSchema) -> StateSchema:
 
     ## OBJECTIVE
     Based on the following context, generate a direct and immersive narrative prompt presenting a situation the player must respond to.
+    The player must decide how to proceed in the unfolding story. He should consider his options carefully (for example, the player could make a choice between exploring a dark cave or returning to the safety of the village or the player could attempt to negotiate with a hostile NPC or prepare for a battle.)
 
     ## CONTEXT
-    - World Summary: {{world_summary}}
-    - Character: {{character_name}}, {{character_description}}
-    - Recent events: {{event_context}}
+
+    --- WORLD CONTEXT ---
+    {{world_context}}
+
+    --- LORE CONTEXT ---
+    {{lore_context}}
+
+    --- CHARACTER CONTEXT ---
+    {{character_context}}
+
+    --- RECENT EVENTS ---
+    {{event_context}}
 
     ## OUTPUT FORMAT
     Output one engaging paragraph in plain text. End with a question or dilemma.
@@ -801,10 +829,10 @@ def llm_generate_next_prompt(state: StateSchema) -> StateSchema:
     """
     prompt = PromptTemplate.from_template(prompt_template, template_format="jinja2")
     formatted_prompt = prompt.format(
-        world_summary=state.get("world_summary", ""),
-        character_name=state.get("character_name", "unknown"),
-        character_description=state.get("character_description", ""),
+        world_context=state.get("world_context", ""),
         event_context=state.get("event_context", ""),
+        lore_context=state.get("lore_context", ""),
+        character_context=state.get("character_context", ""),
     )
 
     llm_model = ChatOpenAI(model=LLM_NAME, temperature=0.9)
@@ -830,8 +858,10 @@ def llm_generate_next_prompt(state: StateSchema) -> StateSchema:
     collection.add_documents([doc])
     state["ai_question"] = result
 
-    print("\n")
-    play_and_type(result, width=TERMINAL_WIDTH)
+    if state.get("source") == "cli":
+        print("\n")
+        play_and_type(result, width=TERMINAL_WIDTH)
+
     return state
 
 

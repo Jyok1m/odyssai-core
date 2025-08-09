@@ -84,7 +84,6 @@ const endpoints = [
             "world_summary": "Terra Novia is a whimsical world where magic and alien technology mix in unexpected ways. Wizards in kimonos duel clumsily, creating chaos and laughter. The land is dotted with enchanting scrolls and ancient tech, forming a unique landscape where eccentric guilds compete for glory. In Ever-Chuckle Marsh, the mysterious Circle of Mirrors reflects worlds that blend reality and humor, a testament to the land's lighthearted yet strange nature.\n\nJyokaro, a witty and loyal hero from the city of Zenthalore, balances swordplay and wizardry. He is part of a guild known for its unusual jobs, from handling alien bounties to recovering magical artifacts. His journey is filled with slapstick battles and heartwarming quests, as he protects friends and uncovers ancient secrets. The world is lively and unpredictable, where laughter can unveil truths or trap the unwary forever."
         }
     }
-    
 ];
 
 const formatJson = (obj) => {

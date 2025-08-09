@@ -19,12 +19,12 @@ from langgraph.graph import StateGraph, END
 from langsmith import traceable
 
 # Modules
-from ..utils.google_tts import text_to_speech
-from ..utils.whisper import transcribe_audio
-from ..utils.audio_session import recorder
-from ..utils.prompt_truncation import truncate_structured_prompt
-from ..config.settings import CHROMA_API_KEY, CHROMA_TENANT, CHROMA_DATABASE
-from ..constants.llm_models import LLM_NAME, EMBEDDING_MODEL
+from odyssai_core.utils.google_tts import text_to_speech
+from odyssai_core.utils.whisper import transcribe_audio
+from odyssai_core.utils.audio_session import recorder
+from odyssai_core.utils.prompt_truncation import truncate_structured_prompt
+from odyssai_core.config.settings import CHROMA_API_KEY, CHROMA_TENANT, CHROMA_DATABASE
+from odyssai_core.constants.llm_models import LLM_NAME, EMBEDDING_MODEL
 
 # Static variables
 CHROMA_DB_CLIENT = chromadb.CloudClient(CHROMA_TENANT, CHROMA_DATABASE, CHROMA_API_KEY)

@@ -26,6 +26,7 @@ help: ## Show this help
 	@echo "  $(GREEN)PORT$(NC)        Port to use (default: 9000)"
 	@echo ""
 	@echo "$(YELLOW)Examples:$(NC)"
+	@echo "  make cli"
 	@echo "  make dev"
 	@echo "  make prod PORT=8080"
 	@echo "  make docker"
@@ -39,6 +40,13 @@ install: ## Install dependencies in existing environment
 	@echo "$(BLUE)📦 Installing dependencies...$(NC)"
 	conda env update -f environment.yml
 	@echo "$(GREEN)✅ Dependencies installed$(NC)"
+
+cli: ## Start in cli mode
+	@echo "$(BLUE)🚀 Starting in cli mode...$(NC)"
+	@eval "$$(conda shell.bash hook)" && \
+	conda activate $(CONDA_ENV) && \
+	export PYTHONPATH=./src && \
+	python src/odyssai_core/main.py
 
 dev: ## Start in development mode
 	@echo "$(BLUE)🚀 Starting in development mode...$(NC)"

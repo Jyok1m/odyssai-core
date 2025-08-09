@@ -223,7 +223,6 @@ def ask_world_genre(state: StateSchema) -> StateSchema:
     state["world_genre"] = (
         world_genre.strip() if world_genre else "Choose a random genre"
     )
-    state["user_input"] = world_genre.strip()
     return state
 
 
@@ -231,17 +230,22 @@ def ask_world_genre(state: StateSchema) -> StateSchema:
 def ask_story_directives(state: StateSchema) -> StateSchema:
     cue = "Are there particular themes or narrative threads you’d like to explore? Let your imagination guide the story’s soul."
     story_directives = get_player_answer(cue)
-    state["user_input"] = story_directives.strip()
+    state["story_directives"] = (
+        story_directives.strip()
+        if story_directives
+        else "No specific directives provided."
+    )
     return state
 
 
 @traceable(run_type="chain", name="LLM Generate World Data")
 def llm_generate_world_data(state: StateSchema) -> StateSchema:
-    cue = "I am generating the data for your new world. This may take a few moments, please be patient..."
-    print("\n")
-    play_and_type(cue, width=TERMINAL_WIDTH)
+    if state.get("source") == "cli":
+        cue = "I am generating the data for your new world. This may take a few moments, please be patient..."
+        print("\n")
+        play_and_type(cue, width=TERMINAL_WIDTH)
 
-    state["active_step"] = "world_creation"
+        state["active_step"] = "world_creation"
 
     prompt_template = """
     ## ROLE

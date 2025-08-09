@@ -89,13 +89,11 @@ class StateSchema(TypedDict):
 # ------------------------------------------------------------------ #
 
 
-@traceable(run_type="tool", name="Transcribe audio from file path")
 def transcribe_audio_file(audio_path: str) -> str:
     transcript = transcribe_audio(audio_path)
     return transcript.strip()
 
 
-@traceable(run_type="tool", name="Play text using Google TTS")
 def play_text_using_google_tts(text: str) -> None:
     audio_path = text_to_speech(text)
     subprocess.run(["afplay", audio_path])
@@ -189,26 +187,26 @@ def check_world_exists(state: StateSchema) -> StateSchema:
             f"The world '{state.get('world_name')}' already exists. "
             "Please restart the process and choose a different name."
         )
-        print("\n")
         if state.get("source") == "cli":
+            print("\n")
             play_and_type(cue, width=TERMINAL_WIDTH)
             state["must_restart_init"] = True
             return state
         else:
-            raise ValueError("World already exists")
+            raise ValueError(cue)
 
     elif not world_exists and not state.get("create_new_world"):
         cue = (
             f"The world '{state.get('world_name')}' does not exist. "
             "You must choose a different name or create a new world."
         )
-        print("\n")
         if state.get("source") == "cli":
+            print("\n")
             play_and_type(cue, width=TERMINAL_WIDTH)
             state["must_restart_init"] = True
             return state
         else:
-            raise ValueError("World does not exist")
+            raise ValueError(cue)
 
     state["must_restart_init"] = False
     state["create_new_world"] = not world_exists
@@ -377,19 +375,25 @@ def check_character_exists(state: StateSchema) -> StateSchema:
             f"The character '{state.get('character_name')}' already exists. "
             "Please restart the process and choose a different name."
         )
-        print("\n")
-        play_and_type(cue, width=TERMINAL_WIDTH)
-        state["must_restart_character"] = True
-        return state
+        if state.get("source") == "cli":
+            print("\n")
+            play_and_type(cue, width=TERMINAL_WIDTH)
+            state["must_restart_character"] = True
+            return state
+        else:
+            raise ValueError(cue)
     elif not character_exists and not state.get("create_new_character"):
         cue = (
             f"The character '{state.get('character_name')}' does not exist. "
             "You must choose a different name or create a new character."
         )
-        print("\n")
-        play_and_type(cue, width=TERMINAL_WIDTH)
-        state["must_restart_character"] = True
-        return state
+        if state.get("source") == "cli":
+            print("\n")
+            play_and_type(cue, width=TERMINAL_WIDTH)
+            state["must_restart_character"] = True
+            return state
+        else:
+            raise ValueError(cue)
 
     state["must_restart_character"] = False
     state["create_new_character"] = not character_exists
@@ -416,8 +420,9 @@ def ask_character_details(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="LLM Generate Character Data")
 def llm_generate_character_data(state: StateSchema) -> StateSchema:
-    cue = "I am generating your character data. This may take a few moments, please be patient..."
-    play_and_type(cue, width=TERMINAL_WIDTH)
+    if state.get("source") == "cli":
+        cue = "I am generating your character data. This may take a few moments, please be patient..."
+        play_and_type(cue, width=TERMINAL_WIDTH)
 
     state["active_step"] = "character_creation"
 
@@ -436,6 +441,19 @@ def llm_generate_character_data(state: StateSchema) -> StateSchema:
 
     Use the world as inspiration, but focus on making the character unique and memorable, with a clear personality, role, and background.  
     Use simple words and expressions so a 15-year-old teenager can understand everything.
+
+    ## EXISTING CONTEXTS
+    Here is information about the world to help guide your thinking:
+
+    --- WORLD CONTEXT ---
+    {{world_context}}
+    ----------------------
+
+    Here is lore that already exists for this world:
+
+    --- EXISTING LORE CONTEXT ---
+    {{lore_context}}
+    -----------------------------
 
     ## FORMAT & STYLE
     - Write one strong paragraph describing the character’s past, personality traits, abilities, and role in the story.
@@ -477,6 +495,8 @@ def llm_generate_character_data(state: StateSchema) -> StateSchema:
             "character_description",
             "Character description not provided. Generate a default description.",
         ),
+        world_context=state.get("world_context", "No world context available yet."),
+        lore_context=state.get("lore_context", "No lore context available yet."),
     )
     truncated_prompt = truncate_structured_prompt(formatted_prompt)
     llm_model = ChatOpenAI(
@@ -491,6 +511,7 @@ def llm_generate_character_data(state: StateSchema) -> StateSchema:
     )
     llm_dict: dict[str, str] = ast.literal_eval(llm_response)
     state["llm_generated_data"] = [llm_dict]
+    state["character_context"] = llm_dict.get("page_content", "")
     return state
 
 

@@ -44,6 +44,26 @@ const endpoints = [
             world_id: "ac8918e7-ccd8-4cae-9b39-753f2994c46c",
             world_name: "terra novia"
         }
+    },
+    {
+        method: "POST",
+        path: "/api/create-character",
+        status: "Operational",
+        description: "Create a new narrative character",
+        response: "Character creation confirmation with character_id, character_name, character_description and world_id",
+        exampleBody: {
+            "world_id": "ac8918e7-ccd8-4cae-9b39-753f2994c46c",
+            "character_name": "jyokaro",
+            "character_gender": "male",
+            "character_description": "a quick-witted swordsman with a knack for trouble, combining samurai discipline with a wizard’s magical prowess. he’s part of a rambunctious guild that takes odd jobs ranging from alien bounties to magical artifact retrieval. his sarcastic humor hides a deep loyalty to his friends."
+        },
+        exampleResponse: {
+            "character_description": "Jyokaro is a male character in Terra Novia, a world of whimsical chaos where magic and alien technology coexist. Born in the bustling city of Zenthalore, Jyokaro grew up amidst the laughter of clumsy wizards and the hum of ancient alien artifacts. As a child, he was often caught in the middle of magical duels, sparking his fascination with both swordplay and wizardry. As he matured, Jyokaro honed his skills, blending the discipline of a samurai with the unpredictable prowess of a wizard. His quick wit and knack for finding trouble led him to join a rambunctious guild known for its odd jobs, from hunting alien bounties to retrieving magical artifacts. Despite his sarcastic humor, which often masks his true feelings, Jyokaro is deeply loyal to his friends, always ready to wield his sword or cast a spell to protect them. His role in the story is that of a cunning hero, navigating the comedic and perilous world of Terra Novia with a sharp mind and a sharper blade.",
+            "character_id": "5b808977-d546-45ee-866a-7243cae1e2c3",
+            "character_name": "jyokaro",
+            "success": true,
+            "world_id": "ac8918e7-ccd8-4cae-9b39-753f2994c46c"
+        }
     }
 ];
 

@@ -1,17 +1,16 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
+from typing import Dict, Union
+from odyssai_core.modules.validators import check_empty_fields
 from odyssai_core.config import settings  # noqa: F401
 from odyssai_core.workflows import main_graph
 import datetime
 
-# Créer le blueprint API
+# Create the API blueprint
 api_bp = Blueprint("api", __name__)
 
 
 @api_bp.route("/health", methods=["GET"])
 def health_check():
-    """
-    Basic health check endpoint
-    """
     return jsonify(
         {
             "status": "healthy",
@@ -22,15 +21,18 @@ def health_check():
     ), 200
 
 
-@api_bp.route("/create-world", methods=["GET"])
+@api_bp.route("/create-world", methods=["POST"])
 def create_world():
-    """
-    Create a new world
-    """
+    data: Dict[str, Union[str, int]] = request.get_json()
+
+    validation_result = check_empty_fields(data, ["world_name"])
+    if not validation_result["result"]:
+        return jsonify(validation_result), 400
+
     state: main_graph.StateSchema = {
         "source": "api",
         "create_new_world": True,
-        "world_name": "test_world",
+        "world_name": str(data["world_name"]).strip().lower(),
     }
 
     try:
@@ -45,11 +47,7 @@ def create_world():
 
     except Exception as e:
         return jsonify(
-            {
-                "success": False,
-                "error": str(e),
-                "error_type": e.__class__.__name__,
-            }
+            {"success": False, "error": str(e), "error_type": e.__class__.__name__}
         ), 500
 
     return jsonify({"success": True, "workflow": result}), 201

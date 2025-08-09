@@ -3,7 +3,6 @@ from odyssai_core.workflows.main_graph import main_graph
 
 
 def main():
-    print("coucou")
     main_graph.invoke(
         {
             "source": "cli",

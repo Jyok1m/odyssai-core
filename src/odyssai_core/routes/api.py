@@ -51,11 +51,28 @@ def create_world():
 
         graph.add_node("check_world_exists", main_graph.check_world_exists)
         graph.add_node("llm_generate_world_data", main_graph.llm_generate_world_data)
+        graph.add_node("save_documents_to_chroma", main_graph.save_documents_to_chroma)
+        graph.add_node("llm_generate_lore_data", main_graph.llm_generate_lore_data)
+        graph.add_node(
+            "llm_generate_world_summary", main_graph.llm_generate_world_summary
+        )
 
         graph.set_entry_point("check_world_exists")
 
         graph.add_edge("check_world_exists", "llm_generate_world_data")
-        graph.add_edge("llm_generate_world_data", main_graph.END)
+        graph.add_edge("llm_generate_world_data", "save_documents_to_chroma")
+        graph.add_edge("llm_generate_lore_data", "save_documents_to_chroma")
+        graph.add_conditional_edges(
+            "save_documents_to_chroma",
+            lambda state: "__from_world__"
+            if state.get("active_step") == "world_creation"
+            else "__from_lore__",
+            {
+                "__from_world__": "llm_generate_lore_data",
+                "__from_lore__": "llm_generate_world_summary",
+            },
+        )
+        graph.add_edge("llm_generate_world_summary", main_graph.END)
 
         workflow = graph.compile()
         result = workflow.invoke(state, config={"recursion_limit": 9999})
@@ -65,4 +82,11 @@ def create_world():
             {"success": False, "error": str(e), "error_type": e.__class__.__name__}
         ), 500
 
-    return jsonify({"success": True, "workflow": result}), 201
+    return jsonify(
+        {
+            "success": True,
+            "world_name": result["world_name"],
+            "world_id": result["world_id"],
+            "synopsis": result["world_summary"],
+        }
+    ), 201

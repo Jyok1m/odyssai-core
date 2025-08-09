@@ -245,33 +245,35 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
         print("\n")
         play_and_type(cue, width=TERMINAL_WIDTH)
 
-        state["active_step"] = "world_creation"
+    state["active_step"] = "world_creation"
 
     prompt_template = """
     ## ROLE
-    You are a narrative generator for a procedural RPG game.
+    You are a world creator for a procedural RPG game.  
+    You make short and vivid descriptions that help players imagine the world "{{world_name}}" (in normal case).
 
     ## OBJECTIVE
-    Your task is to generate an overview of the world "{{world_name}}" (in Normal case).
-
-    ## CREATIVE EXPECTATIONS
-    - The theme / genre of the world must respect the instruction: {{world_genre}}
-    - You must respect the following directives: {{story_directives}}
+    Your job is to write an overview of the world "{{world_name}}".  
+    The text should match the style and theme: {{world_genre}}  
+    You must also follow these extra instructions: {{story_directives}}  
+    Use simple words and expressions so a 15-year-old teenager can understand everything.
 
     ## FORMAT
-    - Each value must be coherent with the creative expectations.
-    - Write in an easy-to-read manner.
-    - Do not include any explanations, comments, or markdown formatting.
-    - Return a single valid Python dictionary.
-    - Respect the following dictionary structure:
+    - Each detail must fit with the given theme and instructions.
+    - Write in a clear and easy-to-read way.
+    - Do not explain or add comments about the story.
+    - Do not use markdown or special formatting.
+    - Return only one valid Python dictionary.
+    - Follow exactly this structure:
+
     {
-        "page_content": string (short descriptive paragraph introducing the world),
+        "page_content": string (a short paragraph introducing the world in a vivid way),
         "metadata": {
             "world_name": "{{world_name}}" (in lowercase),
-            "genre": "string" (e.g. 'fantasy', 'sci-fi', 'dark fantasy' etc... based on the genre: {{world_genre}}),
-            "dominant_species": "string" (e.g. 'humans', 'elves', 'androids' etc...),
-            "magic_presence": True or False (whether magic exists in the world),
-            "governance": "string" (e.g. 'monarchy', 'anarchy', 'federation' etc...)
+            "genre": "string" (e.g. 'fantasy', 'sci-fi', 'dark fantasy' etc., based on {{world_genre}}),
+            "dominant_species": "string" (e.g. 'humans', 'elves', 'androids' etc.),
+            "magic_presence": True or False (if magic exists in the world),
+            "governance": "string" (e.g. 'monarchy', 'anarchy', 'federation' etc.)
         }
     }
 
@@ -307,6 +309,7 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
 
     state["llm_generated_data"] = [llm_dict]
     state["create_new_character"] = True  # Set to True to prompt character creation
+    state["world_context"] = llm_dict.get("page_content", "")
     return state
 
 
@@ -404,34 +407,35 @@ def llm_generate_character_data(state: StateSchema) -> StateSchema:
 
     prompt_template = """
     ## ROLE
-    You are a character generator for a procedural RPG game.
-    You create vivid, lore-aligned characters to inhabit fantastical or science-fictional worlds.
+    You are a character creator for a procedural RPG game.  
+    You make vivid, easy-to-imagine characters who fit well into fantasy or science-fiction worlds.
 
     ## OBJECTIVE
-    Your task is to generate a detailed and engaging character profile for "{{character_name}}" based on the following information:
+    Your task is to write a detailed and engaging character profile for "{{character_name}}" based on the following:
 
     - Character gender: {{character_gender}}
     - Character concept or description: "{{character_description}}"
     - World name: {{world_name}}
     - World ID: {{world_id}}
 
-    Use the world as inspiration, but focus on making the character unique and interesting, with a clear personality, role, and origin.
+    Use the world as inspiration, but focus on making the character unique and memorable, with a clear personality, role, and background.  
+    Use simple words and expressions so a 15-year-old teenager can understand everything.
 
     ## FORMAT & STYLE
-    - Write one well-developed paragraph presenting the character’s background, personality traits, abilities, and narrative potential.
-    - Avoid clichés unless deliberately subverted.
-    - Stay immersive but accessible — use clear language, like in a game character codex.
-    - Do NOT include markdown, YAML, or bullet formatting.
-    - Output a single valid Python dictionary using the exact format below:
+    - Write one strong paragraph describing the character’s past, personality traits, abilities, and role in the story.
+    - Avoid overused ideas unless you twist them in an original way.
+    - Keep it immersive but easy to read — like a game character codex.
+    - Do NOT include markdown, YAML, or bullet points.
+    - Output a single valid Python dictionary using exactly this format:
 
     {
-        "page_content": "string" (a richly written character overview),
+        "page_content": "string" (a well-written character overview),
         "metadata": {
             "character_name": "{{character_name}}" (in lowercase),
             "world_id": "{{world_id}}",
             "world_name": "{{world_name}}" (in lowercase),
             "character_gender": "{{character_gender}}",
-            "short_description": "resumé of the character's role and personality",
+            "short_description": "short summary of the character's role and personality"
         }
     }
 
@@ -519,7 +523,7 @@ def get_lore_context(state: StateSchema) -> StateSchema:
     if len(result) > 0:
         state["lore_context"] = "\n".join([doc.page_content for doc in result])
     else:
-        state["lore_context"] = "No lore context available."
+        state["lore_context"] = "No lore context available yet."
 
     return state
 
@@ -543,54 +547,56 @@ def get_character_context(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="LLM Generate Lore Data")
 def llm_generate_lore_data(state: StateSchema) -> StateSchema:
-    cue = "I am now imagining an additional layer of depth to the lore. This may take a few moments, please be patient..."
-    print("\n")
-    play_and_type(cue, width=TERMINAL_WIDTH)
+    if state.get("source") == "cli":
+        cue = "I am now imagining an additional layer of depth to the lore. This may take a few moments, please be patient..."
+        print("\n")
+        play_and_type(cue, width=TERMINAL_WIDTH)
 
     state["active_step"] = "lore_generation"
 
     prompt_template = """
     ## ROLE
-    You are a lorewriter for a procedural RPG game. 
-    You create deep, immersive backstory content that expands the myth, history, or secret truths of a given fantasy or sci-fi world.
+    You are a storyteller for a procedural RPG game.  
+    You write exciting and mysterious background stories that make the game world "{{world_name}}" feel alive and full of secrets.
 
     ## OBJECTIVE
-    Your task is to generate a rich, standalone paragraph of lore for the world "{{world_name}}" (in Normal case). 
-    This lore should feel like a rediscovered ancient text, a whispered legend, or a crucial fragment of the world's deeper narrative.
+    Your job is to write one rich, standalone paragraph of lore about the world "{{world_name}}" (in normal case).  
+    The text should feel like it comes from an old forgotten book, a story told around a campfire, or an important piece of the world's hidden history.  
+    Use simple words and expressions so that a 15-year-old teenager can understand everything.
 
     ## EXISTING CONTEXTS
-    Below is existing world context to inspire and ground your writing:
+    Here is information about the world to help guide your story:
 
     --- WORLD CONTEXT ---
     {{world_context}}
     ----------------------
 
-    Below is existing lore that has already been written about this world:
+    Here is lore that already exists for this world:
 
     --- EXISTING LORE CONTEXT ---
     {{lore_context}}
     -----------------------------
 
-    Below is existing character context that has already been written about this world:
+    Here is character information that already exists for this world:
 
     --- EXISTING CHARACTER CONTEXT ---
     {{character_context}}
     -----------------------------
 
     ## FORMAT
-    - Write a single detailed paragraph of lore in natural language.
-    - Avoid explanations or meta-comments about the lore itself.
-    - Do not include any markdown, YAML, bullet points, or code formatting.
-    - Output a raw Python dictionary with the following format:
+    - Write only one detailed paragraph of lore in normal language.
+    - Do not explain the story or add comments about it.
+    - Do not use markdown, bullet points, or code formatting.
+    - Give the answer as a raw Python dictionary exactly like this:
 
     {
-        "page_content": "string" (a dense and evocative lore paragraph expanding the world's mythology or history),
+        "page_content": "string" (a rich lore paragraph that adds to the world's story or history),
         "metadata": {
             "world_name": "{{world_name}}" (in lowercase),
             "world_id": "{{world_id}}",
             "type": "lore",
-            "theme": "derived from world context",
-            "tags": "string of tags" (e.g. 'ancient prophecy, lost civilization, divine war')
+            "theme": "based on world context",
+            "tags": "string listing the main themes or ideas" (e.g. 'ancient prophecy, lost kingdom, great battle')
         }
     }
 
@@ -600,8 +606,8 @@ def llm_generate_lore_data(state: StateSchema) -> StateSchema:
     prompt = PromptTemplate.from_template(prompt_template, template_format="jinja2")
     formatted_prompt = prompt.format(
         world_name=state.get("world_name", "World name not provided."),
-        world_context=state.get("world_context", "No world context available."),
-        lore_context=state.get("lore_context", "No lore context available."),
+        world_context=state.get("world_context", "No world context available yet."),
+        lore_context=state.get("lore_context", "No lore context available yet."),
         world_id=state.get("world_id", str(uuid4())),
     )
     truncated_prompt = truncate_structured_prompt(formatted_prompt)
@@ -621,6 +627,7 @@ def llm_generate_lore_data(state: StateSchema) -> StateSchema:
     llm_dict: dict[str, str] = ast.literal_eval(llm_response)
 
     state["llm_generated_data"] = [llm_dict]
+    state["lore_context"] = llm_dict.get("page_content", "")
     return state
 
 
@@ -631,19 +638,24 @@ def llm_generate_lore_data(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="LLM Generate World Summary")
 def llm_generate_world_summary(state: StateSchema) -> StateSchema:
-    cue = "I am now summarizing your story. This may take a few moments, please be patient..."
-    print("\n")
-    play_and_type(cue, width=TERMINAL_WIDTH)
+    if state.get("source") == "cli":
+        cue = "I am now summarizing your story. This may take a few moments, please be patient..."
+        print("\n")
+        play_and_type(cue, width=TERMINAL_WIDTH)
 
     prompt_template = """
     ## ROLE
-    You are a world chronicler and narrator for a procedural RPG game.
+    You are a world narrator for a procedural RPG game.  
+    You tell the story of the world "{{world_name}}" in a simple, clear way.
 
     ## OBJECTIVE
-    Your task is to generate a clear, neutral and immersive summary of the world "{{world_name}}", intended to be used:
-    - At the beginning of the game to introduce the story,
-    - At any time to recall what has happened so far,
-    - As a simple reference for players who may not be fluent in English.
+    Write a short and immersive summary of "{{world_name}}".  
+    It will be used:
+    - At the start of the game to introduce the story,
+    - At any time to remind players what has happened,
+    - As an easy reference for players who may not speak English well.  
+
+    Use simple words and expressions so a 15-year-old teenager can understand everything.
 
     ## INPUT CONTEXTS
 
@@ -657,20 +669,19 @@ def llm_generate_world_summary(state: StateSchema) -> StateSchema:
     {{character_context}}
 
     ## STYLE & CONSTRAINTS
-    - Use **simple, clear language** that is easy to understand even for non-native English speakers.
-    - Focus on **summarizing the main points** of the world's story, history, events, and characters so far.
-    - Avoid abstract metaphors, poetic or cryptic phrasing.
-    - Do not overcomplicate names or sentences.
-    - The tone should be **neutral and informative**, but not robotic.
-    - Do not address the player directly (no "you").
+    - Use clear and easy-to-read language for non-native English speakers.
+    - Summarize the main points of the world's story, history, events, and characters so far.
+    - Avoid poetic or overly complicated language.
+    - Keep names and sentences simple.
+    - Tone should be neutral and informative, but still engaging.
+    - Do not talk directly to the player (no "you").
     - Do not include markdown, YAML, code blocks, or bullet points.
 
     ## FORMAT
-    Output a **single raw string** composed of **one or two short paragraphs** (max ~100 words per paragraph) that cover:
-
+    Return a **single raw string** of one or two short paragraphs (max ~100 words each) covering:
     - The current state and setting of the world
-    - What has happened in the story so far
-    - Any relevant characters or recent events
+    - Key events that have happened so far
+    - Any important characters or recent developments
 
     !!! DO NOT USE MARKDOWN, YAML, OR FORMATTING. OUTPUT ONLY A RAW STRING. !!!
     """
@@ -678,10 +689,10 @@ def llm_generate_world_summary(state: StateSchema) -> StateSchema:
     prompt = PromptTemplate.from_template(prompt_template, template_format="jinja2")
     formatted_prompt = prompt.format(
         world_name=state.get("world_name", "World name not provided."),
-        world_context=state.get("world_context", "No world context available."),
-        lore_context=state.get("lore_context", "No lore context available."),
+        world_context=state.get("world_context", "No world context available yet."),
+        lore_context=state.get("lore_context", "No lore context available yet."),
         character_context=state.get(
-            "character_context", "No character context available."
+            "character_context", "No character context available yet."
         ),
         world_id=state.get("world_id", str(uuid4())),
     )
@@ -700,8 +711,9 @@ def llm_generate_world_summary(state: StateSchema) -> StateSchema:
         raw_output.strip() if isinstance(raw_output, str) else str(raw_output)
     )
 
-    print("\n")
-    play_and_type(llm_response, width=TERMINAL_WIDTH)
+    if state.get("source") == "cli":
+        print("\n")
+        play_and_type(llm_response, width=TERMINAL_WIDTH)
 
     state["world_summary"] = llm_response
     return state

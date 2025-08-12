@@ -12,7 +12,7 @@ class _Transcriber:
     Singleton utility to transcribe audio files using OpenAI's Whisper model.
     """
 
-    def __init__(self, lang="fr", model_name="whisper-1"):
+    def __init__(self, lang="en", model_name="whisper-1"):
         if not os.getenv("OPENAI_API_KEY"):
             raise EnvironmentError("Missing OPENAI_API_KEY environment variable.")
 

@@ -46,6 +46,64 @@ def health_check():
     ), 200
 
 
+@api_bp.route("/check-world", methods=["GET"])
+def check_world():
+    world_name = request.args.get("world_name")
+    world_id = request.args.get("world_id")
+
+    if not world_name and not world_id:
+        return jsonify({"error": "Either world_name or world_id parameter is required"}), 400
+
+    state: main_graph.StateSchema = {
+        "source": "api",
+    }
+
+    if world_id:
+        state["world_id"] = world_id
+    else:
+        state["world_name"] = str(world_name).strip().lower()
+
+    try:
+        graph = main_graph.StateGraph(main_graph.StateSchema)
+
+        if world_id:
+            graph.add_node("check_world_exists_by_id", main_graph.check_world_exists_by_id)
+            graph.set_entry_point("check_world_exists_by_id")
+            graph.add_edge("check_world_exists_by_id", main_graph.END)
+        else:
+            graph.add_node("check_world_exists", main_graph.check_world_exists)
+            graph.set_entry_point("check_world_exists")
+            graph.add_edge("check_world_exists", main_graph.END)
+
+        workflow = graph.compile()
+        result = workflow.invoke(state)
+
+        return jsonify(
+            {
+                "success": True,
+                "exists": True,
+                "world_id": result.get("world_id"),
+                "world_name": result.get("world_name"),
+            }
+        ), 200
+
+    except Exception as e:
+        # If the world doesn't exist, the workflow will raise an exception
+        if "does not exist" in str(e).lower() or "not found" in str(e).lower():
+            return jsonify(
+                {
+                    "success": True,
+                    "exists": False,
+                    "world_id": world_id,
+                    "world_name": world_name,
+                }
+            ), 200
+        
+        return jsonify(
+            {"success": False, "error": str(e), "error_type": e.__class__.__name__}
+        ), 500
+
+
 @api_bp.route("/synopsis", methods=["GET"])
 def get_synopsis():
     world_id = request.args.get("world_id")

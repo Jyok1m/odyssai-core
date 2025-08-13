@@ -85,6 +85,10 @@ class StateSchema(TypedDict):
     player_answer: NotRequired[str]
     immediate_events: NotRequired[str]
 
+    # Message Classification Data
+    user_message: NotRequired[str]
+    classification_result: NotRequired[str]
+
 
 # ------------------------------------------------------------------ #
 #                       Audio Utility Functions                      #
@@ -329,7 +333,7 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
     truncated_prompt = truncate_structured_prompt(formatted_prompt)
     llm_model = ChatOpenAI(
         model=LLM_NAME,
-        temperature=0.7,
+        temperature=1.5,
         streaming=False,
         max_retries=2,
     )
@@ -521,7 +525,7 @@ def llm_generate_character_data(state: StateSchema) -> StateSchema:
     truncated_prompt = truncate_structured_prompt(formatted_prompt)
     llm_model = ChatOpenAI(
         model=LLM_NAME,
-        temperature=0.7,
+        temperature=1.5,
         streaming=False,
         max_retries=2,
     )
@@ -671,7 +675,7 @@ def llm_generate_lore_data(state: StateSchema) -> StateSchema:
 
     llm_model = ChatOpenAI(
         model=LLM_NAME,
-        temperature=1,
+        temperature=1.5,
         streaming=False,
         max_retries=2,
     )
@@ -758,7 +762,7 @@ def llm_generate_world_summary(state: StateSchema) -> StateSchema:
 
     llm_model = ChatOpenAI(
         model=LLM_NAME,
-        temperature=0.8,
+        temperature=0.3,
         streaming=False,
         max_retries=2,
     )
@@ -823,7 +827,7 @@ def llm_generate_immediate_event_summary(state: StateSchema) -> StateSchema:
 
     llm_model = ChatOpenAI(
         model=LLM_NAME,
-        temperature=0.8,
+        temperature=0.3,
         streaming=False,
         max_retries=2,
     )
@@ -838,6 +842,57 @@ def llm_generate_immediate_event_summary(state: StateSchema) -> StateSchema:
         play_and_type(llm_response, width=TERMINAL_WIDTH)
 
     state["immediate_events"] = llm_response
+    return state
+
+
+@traceable(run_type="chain", name="Classify user message as yes or no")
+def classify_user_message(state: StateSchema) -> StateSchema:
+    """
+    Simple function to classify user messages as 'yes' or 'no' using a cheap LLM model
+    """
+    user_message = state.get("user_message", "")
+    
+    if not user_message:
+        state["classification_result"] = "no"
+        return state
+
+    # Create a simple classification prompt
+    classification_prompt = f"""
+    Classify the following user message as either 'yes' or 'no' based on whether the user wants to continue, proceed, or agrees with something.
+
+    User message: "{user_message}"
+
+    Rules:
+    - If the user expresses desire to continue, proceed, agree, or any positive intent: respond with "yes"
+    - If the user expresses desire to stop, disagree, or any negative intent: respond with "no"
+    - If unclear, default to "no"
+    
+    Respond with only "yes" or "no", nothing else.
+    """
+
+    try:
+        llm_model = ChatOpenAI(
+            model=LLM_NAME,  # Cheaper model
+            temperature=0.3,  # Low temperature for consistent classification
+            streaming=False,
+            max_retries=2,
+        )
+
+        raw_output = llm_model.invoke(classification_prompt).content
+        llm_response = (
+            raw_output.strip().lower() if isinstance(raw_output, str) else str(raw_output).strip().lower()
+        )
+
+        # Ensure we only get yes or no
+        if "yes" in llm_response:
+            state["classification_result"] = "yes"
+        else:
+            state["classification_result"] = "no"
+            
+    except Exception:
+        # Default to "no" on error
+        state["classification_result"] = "no"
+
     return state
 
 
@@ -902,7 +957,7 @@ def llm_generate_next_prompt(state: StateSchema) -> StateSchema:
         character_context=state.get("character_context", ""),
     )
 
-    llm_model = ChatOpenAI(model=LLM_NAME, temperature=0.9)
+    llm_model = ChatOpenAI(model=LLM_NAME, temperature=1.5)
     result = llm_model.invoke(truncate_structured_prompt(formatted_prompt)).content
     result = result.strip() if isinstance(result, str) else str(result)
 

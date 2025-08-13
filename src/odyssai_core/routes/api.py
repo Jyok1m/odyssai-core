@@ -104,6 +104,76 @@ def check_world():
         ), 500
 
 
+@api_bp.route("/check-character", methods=["GET"])
+def check_character():
+    world_id = request.args.get("world_id")
+    character_name = request.args.get("character_name")
+    character_id = request.args.get("character_id")
+
+    if not world_id:
+        return jsonify({"error": "world_id parameter is required"}), 400
+
+    if not character_name and not character_id:
+        return jsonify({"error": "Either character_name or character_id parameter is required"}), 400
+
+    state: main_graph.StateSchema = {
+        "source": "api",
+        "world_id": world_id,
+    }
+
+    if character_id:
+        state["character_id"] = character_id
+    else:
+        state["character_name"] = str(character_name).strip().lower()
+
+    try:
+        graph = main_graph.StateGraph(main_graph.StateSchema)
+
+        # First check if the world exists
+        graph.add_node("check_world_exists_by_id", main_graph.check_world_exists_by_id)
+        
+        if character_id:
+            graph.add_node("check_character_exists_by_id", main_graph.check_character_exists_by_id)
+            graph.set_entry_point("check_world_exists_by_id")
+            graph.add_edge("check_world_exists_by_id", "check_character_exists_by_id")
+            graph.add_edge("check_character_exists_by_id", main_graph.END)
+        else:
+            graph.add_node("check_character_exists", main_graph.check_character_exists)
+            graph.set_entry_point("check_world_exists_by_id")
+            graph.add_edge("check_world_exists_by_id", "check_character_exists")
+            graph.add_edge("check_character_exists", main_graph.END)
+
+        workflow = graph.compile()
+        result = workflow.invoke(state)
+
+        return jsonify(
+            {
+                "success": True,
+                "exists": True,
+                "world_id": result.get("world_id"),
+                "character_id": result.get("character_id"),
+                "character_name": result.get("character_name"),
+            }
+        ), 200
+
+    except Exception as e:
+        # If the character doesn't exist, the workflow will raise an exception
+        if "does not exist" in str(e).lower() or "not found" in str(e).lower():
+            return jsonify(
+                {
+                    "success": True,
+                    "exists": False,
+                    "world_id": world_id,
+                    "character_id": character_id,
+                    "character_name": character_name,
+                }
+            ), 200
+        
+        return jsonify(
+            {"success": False, "error": str(e), "error_type": e.__class__.__name__}
+        ), 500
+
+
 @api_bp.route("/synopsis", methods=["GET"])
 def get_synopsis():
     world_id = request.args.get("world_id")

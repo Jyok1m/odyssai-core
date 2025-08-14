@@ -20,7 +20,7 @@ services:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/.secrets/google_tts.json
     volumes:
       - ./.secrets:/app/.secrets:ro
-    expose:
+    ports:
       - "9000:9000"
 
   # nginx:

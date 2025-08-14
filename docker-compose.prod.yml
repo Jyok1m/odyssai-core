@@ -1,0 +1,68 @@
+version: "3.8"
+
+services:
+  odyssai-backend:
+    image: ghcr.io/jyok1m/odyssai-core:latest
+    container_name: odyssai-backend
+    env_file:
+      - .env
+    environment:
+      - BACKEND_PORT=9000
+      - HF_API_KEY=${HF_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - SERPAPI_API_KEY=${SERPAPI_API_KEY}
+      - CHROMA_API_KEY=${CHROMA_API_KEY}
+      - CHROMA_TENANT=${CHROMA_TENANT}
+      - CHROMA_DATABASE=${CHROMA_DATABASE}
+      - LANGSMITH_TRACING=${LANGSMITH_TRACING}
+      - LANGSMITH_ENDPOINT=${LANGSMITH_ENDPOINT}
+      - LANGSMITH_API_KEY=${LANGSMITH_API_KEY}
+      - LANGSMITH_PROJECT=${LANGSMITH_PROJECT}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/.secrets/google_tts.json
+    volumes:
+      - ./.secrets:/app/.secrets:ro
+    expose:
+      - "9000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.odyssai.rule=Host(`odyssai.yourdomain.com`) || PathPrefix(`/api`)"
+      - "traefik.http.routers.odyssai.entrypoints=websecure"
+      - "traefik.http.routers.odyssai.tls.certresolver=letsencrypt"
+      - "traefik.http.services.odyssai.loadbalancer.server.port=9000"
+    networks:
+      - traefik-public
+    restart: unless-stopped
+
+  traefik:
+    image: traefik:v3.5
+    container_name: traefik
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.network=traefik-public"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=your@email.com"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--log.level=INFO"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt:/letsencrypt
+    networks:
+      - traefik-public
+    restart: unless-stopped
+
+networks:
+  traefik-public:
+    external: true
+
+volumes:
+  letsencrypt:

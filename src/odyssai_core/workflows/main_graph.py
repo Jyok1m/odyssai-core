@@ -30,6 +30,7 @@ from odyssai_core.constants.llm_models import LLM_NAME, EMBEDDING_MODEL
 CHROMA_DB_CLIENT = chromadb.CloudClient(CHROMA_TENANT, CHROMA_DATABASE, CHROMA_API_KEY)
 TERMINAL_WIDTH = shutil.get_terminal_size((80, 20)).columns
 VOICE_MODE_ENABLED = False
+MAIN_TEMP = 0.9
 
 # ------------------------------------------------------------------ #
 #                                SCHEMA                              #
@@ -333,7 +334,7 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
     truncated_prompt = truncate_structured_prompt(formatted_prompt)
     llm_model = ChatOpenAI(
         model=LLM_NAME,
-        temperature=1.5,
+        temperature=MAIN_TEMP,
         streaming=False,
         max_retries=2,
     )
@@ -525,7 +526,7 @@ def llm_generate_character_data(state: StateSchema) -> StateSchema:
     truncated_prompt = truncate_structured_prompt(formatted_prompt)
     llm_model = ChatOpenAI(
         model=LLM_NAME,
-        temperature=1.5,
+        temperature=MAIN_TEMP,
         streaming=False,
         max_retries=2,
     )
@@ -675,7 +676,7 @@ def llm_generate_lore_data(state: StateSchema) -> StateSchema:
 
     llm_model = ChatOpenAI(
         model=LLM_NAME,
-        temperature=1.5,
+        temperature=MAIN_TEMP,
         streaming=False,
         max_retries=2,
     )
@@ -957,7 +958,7 @@ def llm_generate_next_prompt(state: StateSchema) -> StateSchema:
         character_context=state.get("character_context", ""),
     )
 
-    llm_model = ChatOpenAI(model=LLM_NAME, temperature=1.5)
+    llm_model = ChatOpenAI(model=LLM_NAME, temperature=MAIN_TEMP)
     result = llm_model.invoke(truncate_structured_prompt(formatted_prompt)).content
     result = result.strip() if isinstance(result, str) else str(result)
 

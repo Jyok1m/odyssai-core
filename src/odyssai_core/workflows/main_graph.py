@@ -930,6 +930,8 @@ def llm_generate_next_prompt(state: StateSchema) -> StateSchema:
 
     ## CONTEXT
 
+    The player plays as the character named: {{character_name}}.
+
     --- WORLD CONTEXT ---
     {{world_context}}
 
@@ -955,6 +957,7 @@ def llm_generate_next_prompt(state: StateSchema) -> StateSchema:
         event_context=state.get("event_context", ""),
         lore_context=state.get("lore_context", ""),
         character_context=state.get("character_context", ""),
+        character_name=state.get("character_name", "")
     )
 
     llm_model = ChatOpenAI(model=LLM_NAME, temperature=MAIN_TEMP)

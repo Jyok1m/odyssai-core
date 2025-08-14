@@ -72,13 +72,13 @@ prod: ## Start in production mode with Gunicorn
 
 docker: ## Start with Docker Compose
 	@echo "$(BLUE)🐳 Starting with Docker...$(NC)"
-	docker-compose down
-	docker-compose up --build
+	docker compose down
+	docker compose up --build
 
 docker-dev: ## Start with Docker Compose in development mode (detached)
 	@echo "$(BLUE)🐳 Starting with Docker in development mode...$(NC)"
-	docker-compose down
-	docker-compose up --build -d
+	docker compose down
+	docker compose up --build -d
 	@echo "$(GREEN)✅ Containers started in background$(NC)"
 	@echo "$(YELLOW)URL: http://localhost$(NC)"
 	@echo ""
@@ -88,13 +88,13 @@ docker-dev: ## Start with Docker Compose in development mode (detached)
 	@echo "  docker-compose ps         # View container status"
 
 docker-logs: ## View Docker logs
-	docker-compose logs -f
+	docker compose logs -f
 
 docker-stop: ## Stop Docker containers
-	docker-compose down
+	docker compose down
 
 docker-ps: ## View Docker container status
-	docker-compose ps
+	docker compose ps
 
 test: ## Run tests (to be implemented)
 	@echo "$(YELLOW)⚠️  Tests not yet implemented$(NC)"

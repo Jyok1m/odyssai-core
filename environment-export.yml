@@ -1,0 +1,86 @@
+name: odyssai
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - pip
+  # Core system packages
+  - ffmpeg
+  - libsndfile
+  - portaudio
+  - ca-certificates
+  - openssl
+
+  # Web frameworks and servers
+  - fastapi=0.115.9
+  - uvicorn=0.35.0
+  - gunicorn=23.0.0
+  - flask=3.1.1
+  - flask-cors=6.0.1
+
+  # HTTP and networking
+  - httpx=0.28.1
+  - aiohttp=3.12.14
+  - websockets=15.0.1
+  - requests=2.32.4
+
+  # Data serialization and validation
+  - orjson=3.11.0
+  - pydantic=2.11.7
+  - pydantic-settings=2.10.1
+
+  # Machine Learning and AI
+  - tiktoken=0.9.0
+  - scikit-learn=1.7.1
+  - numpy=1.26.4
+  - scipy=1.16.0
+  - chromadb=1.0.15
+
+  # LangChain ecosystem
+  - langchain=0.3.26
+  - langchain-openai=0.3.28
+  - langchain-chroma=0.2.5
+  - langchain-community=0.3.27
+  - langchain-core=0.3.70
+  - langchain-text-splitters=0.3.8
+  - langsmith=0.3.45
+
+  # OpenAI and Google Cloud
+  - openai=1.97.1
+  - google-cloud-texttospeech=2.27.0
+  - google-api-core=2.25.1
+  - google-auth=2.40.3
+
+  # Audio processing
+  - librosa=0.11.0
+  - pysoundfile=0.13.1
+  - python-sounddevice=0.5.2
+
+  # Utilities and tools
+  - click=8.2.1
+  - tqdm=4.67.1
+  - pyyaml=6.0.2
+  - python-dotenv=1.1.1
+  - mmh3=5.2.0
+
+  # Development and debugging
+  - ipython=9.4.0
+  - rich-toolkit=0.14.9
+
+  - pip:
+      - langgraph==0.6.0
+      - langgraph-checkpoint==2.1.1
+      - langgraph-prebuilt==0.6.0
+      - langgraph-sdk==0.2.0
+      - onnxruntime==1.22.1
+      - opentelemetry-api==1.36.0
+      - opentelemetry-exporter-otlp-proto-common==1.36.0
+      - opentelemetry-exporter-otlp-proto-grpc==1.36.0
+      - opentelemetry-proto==1.36.0
+      - opentelemetry-sdk==1.36.0
+      - opentelemetry-semantic-conventions==0.57b0
+      - ormsgpack==1.10.0
+      - pydub==0.25.1
+      - pypika==0.48.9
+      - rich==14.1.0

@@ -2,10 +2,26 @@ services:
   odyssai-backend:
     build: .
     container_name: odyssai-backend
+    env_file:
+      - .env
     environment:
       - BACKEND_PORT=9000
+      - HF_API_KEY=${HF_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - SERPAPI_API_KEY=${SERPAPI_API_KEY}
+      - CHROMA_API_KEY=${CHROMA_API_KEY}
+      - CHROMA_TENANT=${CHROMA_TENANT}
+      - CHROMA_DATABASE=${CHROMA_DATABASE}
+      - LANGSMITH_TRACING=${LANGSMITH_TRACING}
+      - LANGSMITH_ENDPOINT=${LANGSMITH_ENDPOINT}
+      - LANGSMITH_API_KEY=${LANGSMITH_API_KEY}
+      - LANGSMITH_PROJECT=${LANGSMITH_PROJECT}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/.secrets/google_tts.json
+    volumes:
+      - ./.secrets:/app/.secrets:ro
     expose:
-      - "9000"
+      - "9000:9000"
 
   # nginx:
   #   image: nginx:alpine

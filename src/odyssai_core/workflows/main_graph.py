@@ -30,7 +30,7 @@ from odyssai_core.constants.llm_models import LLM_NAME, EMBEDDING_MODEL
 CHROMA_DB_CLIENT = chromadb.CloudClient(CHROMA_TENANT, CHROMA_DATABASE, CHROMA_API_KEY)
 TERMINAL_WIDTH = shutil.get_terminal_size((80, 20)).columns
 VOICE_MODE_ENABLED = False
-MAIN_TEMP = 0.9
+MAIN_TEMP = 0.7
 
 # ------------------------------------------------------------------ #
 #                                SCHEMA                              #
@@ -736,7 +736,7 @@ def llm_generate_world_summary(state: StateSchema) -> StateSchema:
     - Avoid poetic or overly complicated language.
     - Keep names and sentences simple.
     - Tone should be neutral and informative, but still engaging.
-    - Do not talk directly to the player (no "you").
+    - You must talk directly to the player (use "you").
     - Do not include markdown, YAML, code blocks, or bullet points.
 
     ## FORMAT
@@ -806,7 +806,7 @@ def llm_generate_immediate_event_summary(state: StateSchema) -> StateSchema:
     - Avoid poetic or overly complicated language.
     - Keep names and sentences simple.
     - Tone should be neutral and informative, but still engaging.
-    - Do not talk directly to the player (no "you").
+    - You must absolutely talk directly to the player (use "you").
     - Do not include markdown, YAML, code blocks, or bullet points.
 
     ## FORMAT
@@ -848,9 +848,6 @@ def llm_generate_immediate_event_summary(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="Classify user message as yes or no")
 def classify_user_message(state: StateSchema) -> StateSchema:
-    """
-    Simple function to classify user messages as 'yes' or 'no' using a cheap LLM model
-    """
     user_message = state.get("user_message", "")
     
     if not user_message:
@@ -946,7 +943,9 @@ def llm_generate_next_prompt(state: StateSchema) -> StateSchema:
     {{event_context}}
 
     ## OUTPUT FORMAT
-    Output one engaging paragraph in plain text. End with a question or dilemma.
+    - Output one engaging paragraph in plain text. 
+    - You must talk directly to the player (use "you").
+    - End with an actionnable, concrete question or dilemma regarding an immediate situation.
 
     !!! DO NOT INCLUDE MARKDOWN OR CODE FORMATTING !!!
     """

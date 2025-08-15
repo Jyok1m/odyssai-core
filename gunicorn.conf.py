@@ -1,7 +1,9 @@
 import os
 
-# Bind to all interfaces and use port from environment or default to 8080
-bind = f"0.0.0.0:{os.environ.get('BACKEND_PORT', 9000)}"
+# Bind to all interfaces and use port from environment or default to 9000
+# Fly.io sets PORT environment variable, fallback to BACKEND_PORT or 9000
+port = os.environ.get('PORT', os.environ.get('BACKEND_PORT', 9000))
+bind = f"0.0.0.0:{port}"
 
 # Number of worker processes
 workers = 2

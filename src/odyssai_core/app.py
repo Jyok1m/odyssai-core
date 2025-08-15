@@ -1,8 +1,12 @@
 import os
 from flask import Flask, render_template
+from flask_cors import CORS
 from odyssai_core.routes.api import api_bp
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
+
+# Configure CORS
+CORS(app)
 
 # Register the API blueprint with the /api prefix
 app.register_blueprint(api_bp, url_prefix="/api")

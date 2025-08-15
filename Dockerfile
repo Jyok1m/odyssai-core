@@ -17,6 +17,9 @@ RUN mamba env create -n odyssai -f /tmp/environment.yml --override-channels -c c
 COPY requirements-export.txt /tmp/requirements.txt
 RUN conda run -n odyssai pip install --no-cache-dir -r /tmp/requirements.txt
 
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Code
 COPY . .
 
@@ -25,4 +28,5 @@ ENV PYTHONPATH=/app/src \
     BACKEND_PORT=9000
 EXPOSE 9000
 
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["conda","run","--no-capture-output","-n","odyssai","gunicorn","-c","gunicorn.conf.py","src.odyssai_core.app:app"]

@@ -34,13 +34,3 @@ primary_region = 'cdg'
     port = 80
   [[services.ports]]
     port = 443
-
-[[checks]]
-  name = "health_check"
-  type = "http"
-  port = 9000
-  interval = "15s"
-  timeout = "2s"
-  method = "GET"
-  path = "/api/health"
-  grace_period = "10s"

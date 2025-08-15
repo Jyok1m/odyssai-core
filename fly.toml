@@ -10,10 +10,10 @@ primary_region = 'cdg'
 
 [http_service]
   internal_port = 9000
-  force_https = true
+  force_https = false
   auto_stop_machines = true
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
   processes = ['app']
 
   [http_service.concurrency]
@@ -32,5 +32,7 @@ primary_region = 'cdg'
   processes = ["app"]
   [[services.ports]]
     port = 80
+    handlers = ["http"]
   [[services.ports]]
     port = 443
+    handlers = ["tls", "http"]

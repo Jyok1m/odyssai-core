@@ -11,6 +11,7 @@ on:
       - "pyproject.toml"
   pull_request:
     branches: [main]
+  workflow_dispatch: # Manual trigger
 
 env:
   REGISTRY: ghcr.io

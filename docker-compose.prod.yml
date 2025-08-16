@@ -20,6 +20,7 @@ services:
       - LANGSMITH_API_KEY=${LANGSMITH_API_KEY}
       - LANGSMITH_PROJECT=${LANGSMITH_PROJECT}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/.secrets/google_tts.json
+      - MONGODB_URI=${MONGODB_URI}
     volumes:
       - ./.secrets:/app/.secrets:ro
     expose:

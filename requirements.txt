@@ -28,3 +28,7 @@ chromadb==1.0.15
 google-cloud-texttospeech==2.27.0
 pydub==0.25.1
 mmh3==5.2.0
+
+# MongoDB
+pymongo==4.10.1
+dnspython==2.7.0

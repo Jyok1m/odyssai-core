@@ -19,3 +19,5 @@ opentelemetry-semantic-conventions==0.57b0
 ormsgpack==1.10.0
 pypika==0.48.9
 rich==14.1.0
+pymongo==4.10.1
+dnspython==2.7.0

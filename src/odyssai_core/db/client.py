@@ -1,33 +1,36 @@
 """
 MongoDB client wrapper for OdyssAI Core
-Provides high-level database operations
+Provides high-level database operations with schema validation
 """
 
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from bson import ObjectId
 from pymongo.collection import Collection
 from pymongo.database import Database
 from pymongo.errors import PyMongoError
 
 from .connection import get_database
+from .schemas import VALIDATORS
 
 logger = logging.getLogger(__name__)
 
 
 class MongoDBClient:
     """
-    High-level MongoDB client wrapper for common operations
+    High-level MongoDB client wrapper for common operations with schema validation
     """
     
-    def __init__(self, database_name: str = "odyssai"):
+    def __init__(self, database_name: str = "odyssai", validate_schemas: bool = True):
         """
         Initialize MongoDB client
         
         Args:
             database_name (str): Name of the database
+            validate_schemas (bool): Whether to validate documents against schemas
         """
         self.database_name = database_name
+        self.validate_schemas = validate_schemas
         self._db: Optional[Database] = None
     
     @property
@@ -49,18 +52,44 @@ class MongoDBClient:
         """
         return self.db[collection_name]
     
-    def insert_one(self, collection_name: str, document: Dict[str, Any]) -> Optional[str]:
+    def _validate_document(self, collection_name: str, document: Dict[str, Any]) -> Tuple[bool, List[str]]:
         """
-        Insert a single document
+        Validate document against schema if validation is enabled
+        
+        Args:
+            collection_name (str): Name of the collection
+            document (Dict): Document to validate
+            
+        Returns:
+            Tuple[bool, List[str]]: (is_valid, error_messages)
+        """
+        if not self.validate_schemas or collection_name not in VALIDATORS:
+            return True, []
+        
+        validator = VALIDATORS[collection_name]
+        return validator(document)
+    
+    def insert_one(self, collection_name: str, document: Dict[str, Any], 
+                   skip_validation: bool = False) -> Optional[str]:
+        """
+        Insert a single document with schema validation
         
         Args:
             collection_name (str): Name of the collection
             document (Dict): Document to insert
+            skip_validation (bool): Skip schema validation for this insert
             
         Returns:
             Optional[str]: The inserted document's ID as string, None if failed
         """
         try:
+            # Validate document if enabled
+            if not skip_validation:
+                is_valid, errors = self._validate_document(collection_name, document)
+                if not is_valid:
+                    logger.error(f"Document validation failed for {collection_name}: {errors}")
+                    return None
+            
             collection = self.get_collection(collection_name)
             result = collection.insert_one(document)
             logger.info(f"Document inserted in {collection_name} with ID: {result.inserted_id}")
@@ -69,18 +98,28 @@ class MongoDBClient:
             logger.error(f"Error inserting document in {collection_name}: {e}")
             return None
     
-    def insert_many(self, collection_name: str, documents: List[Dict[str, Any]]) -> List[str]:
+    def insert_many(self, collection_name: str, documents: List[Dict[str, Any]], 
+                    skip_validation: bool = False) -> List[str]:
         """
-        Insert multiple documents
+        Insert multiple documents with schema validation
         
         Args:
             collection_name (str): Name of the collection
             documents (List[Dict]): List of documents to insert
+            skip_validation (bool): Skip schema validation for this insert
             
         Returns:
             List[str]: List of inserted document IDs as strings
         """
         try:
+            # Validate all documents if enabled
+            if not skip_validation:
+                for i, document in enumerate(documents):
+                    is_valid, errors = self._validate_document(collection_name, document)
+                    if not is_valid:
+                        logger.error(f"Document {i} validation failed for {collection_name}: {errors}")
+                        return []
+            
             collection = self.get_collection(collection_name)
             result = collection.insert_many(documents)
             logger.info(f"{len(result.inserted_ids)} documents inserted in {collection_name}")
@@ -295,3 +334,36 @@ class MongoDBClient:
             str: New ObjectId as string
         """
         return str(ObjectId())
+    
+    def validate_document_schema(self, collection_name: str, document: Dict[str, Any]) -> Tuple[bool, List[str]]:
+        """
+        Manually validate a document against its schema
+        
+        Args:
+            collection_name (str): Name of the collection
+            document (Dict): Document to validate
+            
+        Returns:
+            Tuple[bool, List[str]]: (is_valid, error_messages)
+        """
+        return self._validate_document(collection_name, document)
+    
+    def get_collection_schema_info(self, collection_name: str) -> Dict[str, Any]:
+        """
+        Get schema information for a collection
+        
+        Args:
+            collection_name (str): Name of the collection
+            
+        Returns:
+            Dict: Schema information
+        """
+        if collection_name not in VALIDATORS:
+            return {"has_schema": False, "message": f"No schema defined for {collection_name}"}
+        
+        return {
+            "has_schema": True,
+            "collection_name": collection_name,
+            "validator_available": True,
+            "validation_enabled": self.validate_schemas
+        }

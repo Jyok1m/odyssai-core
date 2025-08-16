@@ -5,6 +5,8 @@ from odyssai_core.routes.system import system_bp
 from odyssai_core.routes.worlds import worlds_bp
 from odyssai_core.routes.characters import characters_bp
 from odyssai_core.routes.gameplay import gameplay_bp
+from odyssai_core.routes.users import users_bp
+
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 
@@ -16,6 +18,7 @@ app.register_blueprint(system_bp, url_prefix="/api")
 app.register_blueprint(worlds_bp, url_prefix="/api/worlds")
 app.register_blueprint(characters_bp, url_prefix="/api/characters")
 app.register_blueprint(gameplay_bp, url_prefix="/api/game")
+app.register_blueprint(users_bp, url_prefix="/api/users")
 
 
 @app.route("/")

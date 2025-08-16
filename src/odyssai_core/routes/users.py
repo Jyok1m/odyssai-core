@@ -44,8 +44,8 @@ class LeaveGameRequestSchema(Dict):
 
 class InteractionRequestSchema(Dict):
     user_uuid: str
-    world_id: str
-    character_id: str
+    world_id: Optional[str] = None
+    character_id: Optional[str] = None
     interaction_source: str  # "ai" or "user"
     text: str
 
@@ -212,7 +212,7 @@ def save_interaction():
 
     # Validate required fields
     validation_result = check_empty_fields(
-        data, ["user_uuid", "world_id", "character_id", "interaction_source", "text"]
+        data, ["user_uuid", "interaction_source", "text"]
     )
     if not validation_result["result"]:
         return jsonify(validation_result), 400
@@ -229,8 +229,8 @@ def save_interaction():
     # Create interaction document
     interaction = InteractionSchema(
         user_uuid=data["user_uuid"],
-        world_id=data["world_id"],
-        character_id=data["character_id"],
+        world_id=data.get("world_id", None),
+        character_id=data.get("character_id", None),
         interaction_source=data["interaction_source"],
         text=data["text"],
         timestamp=datetime.datetime.utcnow()

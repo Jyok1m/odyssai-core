@@ -1,15 +1,21 @@
 import os
 from flask import Flask, render_template
 from flask_cors import CORS
-from odyssai_core.routes.api import api_bp
+from odyssai_core.routes.system import system_bp
+from odyssai_core.routes.worlds import worlds_bp
+from odyssai_core.routes.characters import characters_bp
+from odyssai_core.routes.gameplay import gameplay_bp
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 
 # Configure CORS
 CORS(app)
 
-# Register the API blueprint with the /api prefix
-app.register_blueprint(api_bp, url_prefix="/api")
+# Register the blueprints with appropriate prefixes
+app.register_blueprint(system_bp, url_prefix="/api")
+app.register_blueprint(worlds_bp, url_prefix="/api/worlds")
+app.register_blueprint(characters_bp, url_prefix="/api/characters")
+app.register_blueprint(gameplay_bp, url_prefix="/api/game")
 
 
 @app.route("/")

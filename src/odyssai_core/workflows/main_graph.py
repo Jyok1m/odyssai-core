@@ -558,6 +558,36 @@ def get_world_context(state: StateSchema) -> StateSchema:
     return state
 
 
+@traceable(run_type="chain", name="Get all worlds list")
+def get_all_worlds() -> list[dict]:
+    db_collection = Chroma(
+        client=CHROMA_DB_CLIENT,
+        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        collection_name="worlds",
+    )
+    
+    # Get all worlds from the database
+    result = db_collection.get()
+    
+    if not result["ids"]:
+        return []
+    
+    worlds_list = []
+    for i, world_id in enumerate(result["ids"]):
+        world_data = {
+            "world_id": world_id,
+            "world_name": result["metadatas"][i].get("world_name", "Unknown World") if result["metadatas"] and result["metadatas"][i] else "Unknown World",
+            "world_description": result["documents"][i] if result["documents"] and len(result["documents"]) > i else "No description available",
+            "genre": result["metadatas"][i].get("genre", "Unknown") if result["metadatas"] and result["metadatas"][i] else "Unknown",
+            "dominant_species": result["metadatas"][i].get("dominant_species", "Unknown") if result["metadatas"] and result["metadatas"][i] else "Unknown",
+            "magic_presence": result["metadatas"][i].get("magic_presence", False) if result["metadatas"] and result["metadatas"][i] else False,
+            "governance": result["metadatas"][i].get("governance", "Unknown") if result["metadatas"] and result["metadatas"][i] else "Unknown"
+        }
+        worlds_list.append(world_data)
+    
+    return worlds_list
+
+
 @traceable(run_type="chain", name="Get lore context")
 def get_lore_context(state: StateSchema) -> StateSchema:
     db_collection = Chroma(

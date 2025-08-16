@@ -50,6 +50,25 @@ def health_check():
     ), 200
 
 
+@api_bp.route("/worlds", methods=["GET"])
+def list_worlds():
+    try:
+        worlds_list = main_graph.get_all_worlds()
+        
+        return jsonify({
+            "success": True,
+            "worlds": worlds_list,
+            "count": len(worlds_list)
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "success": False, 
+            "error": str(e), 
+            "error_type": e.__class__.__name__
+        }), 500
+
+
 @api_bp.route("/check-world", methods=["GET"])
 def check_world():
     world_name = request.args.get("world_name")

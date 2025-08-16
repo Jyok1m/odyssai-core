@@ -297,3 +297,36 @@ def get_interactions():
     except Exception as e:
         return jsonify({"error": f"Failed to retrieve interactions: {str(e)}"}), 500
 
+@users_bp.route("/delete-interactions", methods=["DELETE"])
+def delete_user_interactions():
+    """Delete all interactions for a specific user"""
+    data = request.get_json()
+
+    # Validate required fields
+    validation_result = check_empty_fields(
+        data, ["user_uuid"]
+    )
+    if not validation_result["result"]:
+        return jsonify(validation_result), 400
+    
+    user_uuid = data["user_uuid"]
+    
+    # Check if user exists
+    user = client.find_one("users", {"uuid": user_uuid})
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    try:
+        # Delete all interactions for this user
+        collection = client.get_collection("ai_interactions")
+        delete_result = collection.delete_many({"user_uuid": user_uuid})
+        
+        return jsonify({
+            "message": f"Successfully deleted {delete_result.deleted_count} interactions for user {user_uuid}",
+            "deleted_count": delete_result.deleted_count,
+            "user_uuid": user_uuid
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to delete interactions: {str(e)}"}), 500
+

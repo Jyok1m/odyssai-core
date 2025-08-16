@@ -26,4 +26,4 @@ primary_region = 'cdg'
   interval = "30s"
   method = "GET"
   timeout = "5s"
-  path = "/api/health"
+  path = "/"

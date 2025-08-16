@@ -9,6 +9,7 @@ on:
       - "environment*.yml"
       - "Dockerfile"
       - "pyproject.toml"
+      - "fly.toml"
   pull_request:
     branches: [main]
 

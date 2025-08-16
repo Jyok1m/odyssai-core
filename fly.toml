@@ -1,8 +1,3 @@
-# fly.toml app configuration file generated for odyssai-core on 2025-08-15T10:56:47+02:00
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
-
 app = 'odyssai-core'
 primary_region = 'cdg'
 
@@ -34,3 +29,10 @@ primary_region = 'cdg'
     port = 80
   [[services.ports]]
     port = 443
+
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "30s"
+  method = "GET"
+  timeout = "5s"
+  path = "/api/health"

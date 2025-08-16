@@ -212,7 +212,7 @@ def save_interaction():
 
     # Validate required fields
     validation_result = check_empty_fields(
-        data, ["user_uuid", "interaction_source", "text"]
+        data, ["user_uuid", "interaction_source", "message"]
     )
     if not validation_result["result"]:
         return jsonify(validation_result), 400
@@ -232,7 +232,7 @@ def save_interaction():
         world_id=data.get("world_id", None),
         character_id=data.get("character_id", None),
         interaction_source=data["interaction_source"],
-        text=data["text"],
+        message=data["message"],
         timestamp=datetime.datetime.utcnow()
     )
     

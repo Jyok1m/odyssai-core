@@ -62,10 +62,10 @@ class UserSchema:
 class InteractionSchema:
     """AI interaction document schema"""
     user_uuid: str  # ObjectId as string
+    message: Dict[Any, Any]
     world_id: Optional[str] = None
     character_id: Optional[str] = None
     interaction_source: str = "ai"  # ai or user
-    text: str = ""
     timestamp: datetime = datetime.utcnow()
     
     def to_dict(self) -> Dict[str, Any]:

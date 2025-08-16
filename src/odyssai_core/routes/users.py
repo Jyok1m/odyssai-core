@@ -258,12 +258,6 @@ def get_interactions():
     if not user_uuid:
         return jsonify({"error": "user_uuid parameter is required"}), 400
     
-    if not world_id:
-        return jsonify({"error": "world_id parameter is required"}), 400
-    
-    if not character_id:
-        return jsonify({"error": "character_id parameter is required"}), 400
-    
     # Check if user exists
     user = client.find_one("users", {"uuid": user_uuid})
     if not user:
@@ -272,10 +266,14 @@ def get_interactions():
     # Build filter
     filter_dict = {
         "user_uuid": user_uuid,
-        "world_id": world_id,
-        "character_id": character_id
     }
-    
+
+    if world_id:
+        filter_dict["world_id"] = world_id
+
+    if character_id:
+        filter_dict["character_id"] = character_id
+
     # Get interactions (sorted by timestamp descending)
     try:
         collection = client.get_collection("ai_interactions")

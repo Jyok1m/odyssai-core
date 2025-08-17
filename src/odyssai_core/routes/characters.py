@@ -1,6 +1,10 @@
 from flask import Blueprint, jsonify, request
 from typing import Dict
 from odyssai_core.modules.validators import check_empty_fields
+from odyssai_core.utils.i18n import (
+    create_error_response, 
+    create_success_response
+)
 from odyssai_core.workflows import main_graph
 
 # Create the characters blueprint
@@ -18,16 +22,25 @@ class CreateCharacterRequestSchema(Dict):
 def create_character():
     """Create a new narrative character"""
     data: CreateCharacterRequestSchema = request.get_json()
+    
+    # Get language from query parameters (default to 'en')
+    language = request.args.get('lang', 'en')
+    if language not in ['fr', 'en']:
+        language = 'en'
 
     validation_result = check_empty_fields(
         data,
         ["world_id", "character_name", "character_gender", "character_description"],
     )
     if not validation_result["result"]:
-        return jsonify(validation_result), 400
+        error_response, status_code = create_error_response(
+            language, "missing_fields", 400
+        )
+        return jsonify(error_response), status_code
 
     state: main_graph.StateSchema = {
         "source": "api",
+        "user_language": language,  # Add language to state
         "create_new_character": True,
         "world_id": str(data["world_id"]).strip(),
         "character_name": str(data["character_name"]).strip().lower(),
@@ -62,19 +75,25 @@ def create_character():
         result = workflow.invoke(state)
 
     except Exception as e:
-        return jsonify(
-            {"success": False, "error": str(e), "error_type": e.__class__.__name__}
-        ), 500
+        error_response, status_code = create_error_response(
+            language, "internal_error", 500
+        )
+        error_response["error_details"] = str(e)
+        error_response["error_type"] = e.__class__.__name__
+        return jsonify(error_response), status_code
 
-    return jsonify(
+    success_response, status_code = create_success_response(
+        language,
+        "character_created",
         {
-            "success": True,
             "character_name": result.get("character_name"),
             "character_id": result.get("character_id"),
             "character_description": result.get("character_context"),
-            "world_id": result.get("world_id"),
-        }
-    ), 201
+            "world_id": result.get("world_id")
+        },
+        201
+    )
+    return jsonify(success_response), status_code
 
 
 @characters_bp.route("/check", methods=["GET"])
@@ -83,15 +102,27 @@ def check_character():
     world_id = request.args.get("world_id")
     character_name = request.args.get("character_name")
     character_id = request.args.get("character_id")
+    
+    # Get language from query parameters (default to 'en')
+    language = request.args.get('lang', 'en')
+    if language not in ['fr', 'en']:
+        language = 'en'
 
     if not world_id:
-        return jsonify({"error": "world_id parameter is required"}), 400
+        error_response, status_code = create_error_response(
+            language, "world_id_required", 400
+        )
+        return jsonify(error_response), status_code
 
     if not character_name and not character_id:
-        return jsonify({"error": "Either character_name or character_id parameter is required"}), 400
+        error_response, status_code = create_error_response(
+            language, "character_name_or_id_required", 400
+        )
+        return jsonify(error_response), status_code
 
     state: main_graph.StateSchema = {
         "source": "api",
+        "user_language": language,
         "world_id": world_id,
     }
 
@@ -120,29 +151,38 @@ def check_character():
         workflow = graph.compile()
         result = workflow.invoke(state)
 
-        return jsonify(
+        success_response, status_code = create_success_response(
+            language,
+            "character_found",
             {
-                "success": True,
                 "exists": True,
                 "world_id": result.get("world_id"),
                 "character_id": result.get("character_id"),
-                "character_name": result.get("character_name"),
-            }
-        ), 200
+                "character_name": result.get("character_name")
+            },
+            200
+        )
+        return jsonify(success_response), status_code
 
     except Exception as e:
         # If the character doesn't exist, the workflow will raise an exception
         if "does not exist" in str(e).lower() or "not found" in str(e).lower():
-            return jsonify(
+            success_response, status_code = create_success_response(
+                language,
+                "character_not_found",
                 {
-                    "success": True,
                     "exists": False,
                     "world_id": world_id,
                     "character_id": character_id,
-                    "character_name": character_name,
-                }
-            ), 200
+                    "character_name": character_name
+                },
+                200
+            )
+            return jsonify(success_response), status_code
         
-        return jsonify(
-            {"success": False, "error": str(e), "error_type": e.__class__.__name__}
-        ), 500
+        error_response, status_code = create_error_response(
+            language, "internal_error", 500
+        )
+        error_response["error_details"] = str(e)
+        error_response["error_type"] = e.__class__.__name__
+        return jsonify(error_response), status_code

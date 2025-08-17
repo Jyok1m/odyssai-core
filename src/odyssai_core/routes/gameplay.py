@@ -1,6 +1,10 @@
 from flask import Blueprint, jsonify, request
 from typing import Dict
 from odyssai_core.modules.validators import check_empty_fields
+from odyssai_core.utils.i18n import (
+    create_error_response, 
+    create_success_response
+)
 from odyssai_core.workflows import main_graph
 
 # Create the gameplay blueprint
@@ -22,13 +26,22 @@ class RegisterAnswerRequestSchema(Dict):
 def join_game():
     """Join an existing game world"""
     data: JoinGameRequestSchema = request.get_json()
+    
+    # Get language from query parameters (default to 'en')
+    language = request.args.get('lang', 'en')
+    if language not in ['fr', 'en']:
+        language = 'en'
 
     validation_result = check_empty_fields(data, ["world_name", "character_name"])
     if not validation_result["result"]:
-        return jsonify(validation_result), 400
+        error_response, status_code = create_error_response(
+            language, "missing_fields", 400
+        )
+        return jsonify(error_response), status_code
 
     state: main_graph.StateSchema = {
         "source": "api",
+        "user_language": language,  # Add language to state
         "create_new_world": False,
         "create_new_character": False,
         "world_name": str(data["world_name"]).strip().lower(),
@@ -68,20 +81,26 @@ def join_game():
         result = workflow.invoke(state)
 
     except Exception as e:
-        return jsonify(
-            {"success": False, "error": str(e), "error_type": e.__class__.__name__}
-        ), 500
+        error_response, status_code = create_error_response(
+            language, "internal_error", 500
+        )
+        error_response["error_details"] = str(e)
+        error_response["error_type"] = e.__class__.__name__
+        return jsonify(error_response), status_code
 
-    return jsonify(
+    success_response, status_code = create_success_response(
+        language,
+        "game_joined",
         {
-            "success": True,
             "world_name": result.get("world_name"),
             "world_id": result.get("world_id"),
             "character_name": result.get("character_name"),
             "character_id": result.get("character_id"),
-            "world_summary": result.get("world_summary"),
-        }
-    ), 200
+            "world_summary": result.get("world_summary")
+        },
+        200
+    )
+    return jsonify(success_response), status_code
 
 
 @gameplay_bp.route("/prompt", methods=["GET"])
@@ -89,15 +108,27 @@ def get_game_prompt():
     """Get game instructions/prompt for the player"""
     world_id = request.args.get("world_id")
     character_id = request.args.get("character_id")
+    
+    # Get language from query parameters (default to 'en')
+    language = request.args.get('lang', 'en')
+    if language not in ['fr', 'en']:
+        language = 'en'
 
     if not world_id:
-        return jsonify({"error": "world_id parameter is required"}), 400
+        error_response, status_code = create_error_response(
+            language, "world_id_required", 400
+        )
+        return jsonify(error_response), status_code
 
     if not character_id:
-        return jsonify({"error": "character_id parameter is required"}), 400
+        error_response, status_code = create_error_response(
+            language, "character_id_required", 400
+        )
+        return jsonify(error_response), status_code
 
     state: main_graph.StateSchema = {
         "source": "api",
+        "user_language": language,
         "world_id": world_id,
         "character_id": character_id,
     }
@@ -133,33 +164,48 @@ def get_game_prompt():
         result = workflow.invoke(state)
 
     except Exception as e:
-        return jsonify(
-            {"success": False, "error": str(e), "error_type": e.__class__.__name__}
-        ), 500
+        error_response, status_code = create_error_response(
+            language, "internal_error", 500
+        )
+        error_response["error_details"] = str(e)
+        error_response["error_type"] = e.__class__.__name__
+        return jsonify(error_response), status_code
 
-    return jsonify(
+    success_response, status_code = create_success_response(
+        language,
+        "prompt_generated",
         {
-            "success": True,
             "world_id": result.get("world_id"),
             "character_id": result.get("character_id"),
-            "ai_prompt": result.get("ai_question"),
-        }
-    ), 200
+            "ai_prompt": result.get("ai_question")
+        },
+        200
+    )
+    return jsonify(success_response), status_code
 
 
 @gameplay_bp.route("/action", methods=["POST"])
 def register_player_action():
     """Register player's answer/response to the game prompt"""
     data: RegisterAnswerRequestSchema = request.get_json()
+    
+    # Get language from query parameters (default to 'en')
+    language = request.args.get('lang', 'en')
+    if language not in ['fr', 'en']:
+        language = 'en'
 
     validation_result = check_empty_fields(
         data, ["world_id", "character_id", "player_answer"]
     )
     if not validation_result["result"]:
-        return jsonify(validation_result), 400
+        error_response, status_code = create_error_response(
+            language, "missing_fields", 400
+        )
+        return jsonify(error_response), status_code
 
     state: main_graph.StateSchema = {
         "source": "api",
+        "user_language": language,
         "world_id": str(data["world_id"]).strip(),
         "character_id": str(data["character_id"]).strip(),
         "player_answer": str(data["player_answer"]).strip(),
@@ -195,15 +241,21 @@ def register_player_action():
         result = workflow.invoke(state)
 
     except Exception as e:
-        return jsonify(
-            {"success": False, "error": str(e), "error_type": e.__class__.__name__}
-        ), 500
+        error_response, status_code = create_error_response(
+            language, "internal_error", 500
+        )
+        error_response["error_details"] = str(e)
+        error_response["error_type"] = e.__class__.__name__
+        return jsonify(error_response), status_code
 
-    return jsonify(
+    success_response, status_code = create_success_response(
+        language,
+        "action_registered",
         {
-            "success": True,
             "world_id": result.get("world_id"),
             "character_id": result.get("character_id"),
-            "immediate_events": result.get("immediate_events"),
-        }
-    ), 200
+            "immediate_events": result.get("immediate_events")
+        },
+        200
+    )
+    return jsonify(success_response), status_code

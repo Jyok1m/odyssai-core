@@ -30,6 +30,9 @@ class UserSchema:
     current_character_id: Optional[str] = None
     current_character_name: Optional[str] = None
 
+    # User preferences
+    language: str = "en"  # Default to English ('en' or 'fr')
+
     # Extra data
     last_login: Optional[datetime] = None
     role: UserRole = UserRole.USER

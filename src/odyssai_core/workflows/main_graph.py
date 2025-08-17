@@ -1,5 +1,6 @@
 # Libs
 import chromadb
+import random
 import ast
 import textwrap
 import shutil
@@ -39,6 +40,9 @@ MAIN_TEMP = 0.7
 
 class StateSchema(TypedDict):
     source: Literal["cli", "api"]
+
+    # User preferences
+    user_language: NotRequired[str]  # 'fr' or 'en', default 'en'
 
     # Init Data
     world_genre: NotRequired[str]
@@ -86,6 +90,634 @@ class StateSchema(TypedDict):
     player_answer: NotRequired[str]
     immediate_events: NotRequired[str]
 
+
+# ------------------------------------------------------------------ #
+#                       INTERNATIONALIZATION UTILS                    #
+# ------------------------------------------------------------------ #
+
+def get_user_language(state: StateSchema) -> str:
+    """Get user language from state, default to 'en'"""
+    return state.get("user_language", "en")
+
+def get_i18n_text(state: StateSchema, key: str) -> str:
+    """Get internationalized text based on user language"""
+    language = get_user_language(state)
+    
+    # Text mappings for different languages
+    texts = {
+        # Character details prompts
+        "ask_character_gender": {
+            "en": "What is your character's gender?",
+            "fr": "Quel est le genre de votre personnage ?"
+        },
+        "ask_character_description": {
+            "en": "What is your character's description?",
+            "fr": "Quelle est la description de votre personnage ?"
+        },
+        # Generation cues
+        "generating_world_data": {
+            "en": "I am generating the data for your new world. This may take a few moments, please be patient...",
+            "fr": "Je génère les données pour votre nouveau monde. Cela peut prendre quelques instants, veuillez patienter..."
+        },
+        "generating_character_data": {
+            "en": "I am generating your character data. This may take a few moments, please be patient...",
+            "fr": "Je génère les données de votre personnage. Cela peut prendre quelques instants, veuillez patienter..."
+        },
+        "generating_lore_data": {
+            "en": "I am now imagining an additional layer of depth to the lore. This may take a few moments, please be patient...",
+            "fr": "J'imagine maintenant une couche supplémentaire de profondeur pour le lore. Cela peut prendre quelques instants, veuillez patienter..."
+        },
+        "summarizing_story": {
+            "en": "I am now summarizing your story. This may take a few moments, please be patient...",
+            "fr": "Je résume maintenant votre histoire. Cela peut prendre quelques instants, veuillez patienter..."
+        },
+        # Continue/stop prompt
+        "ask_continue": {
+            "en": "Do you wish to continue? Respond by typing 'yes' or 'no'.",
+            "fr": "Souhaitez-vous continuer ? Répondez en tapant 'oui' ou 'non'."
+        },
+        # Input missing
+        "input_missing": {
+            "en": "It seems you haven't provided any input. Let's try again.",
+            "fr": "Il semble que vous n'ayez rien saisi. Essayons à nouveau."
+        },
+        # Welcome messages
+        "welcome": {
+            "en": "Welcome to Odyssai. Start by answering a few questions and let's get started! Do you want to create a new world? Respond by typing 'yes' or 'no'.",
+            "fr": "Bienvenue dans Odyssai. Commençons par répondre à quelques questions ! Voulez-vous créer un nouveau monde ? Répondez en tapant 'oui' ou 'non'."
+        },
+        
+        # World creation
+        "ask_world_name_create": {
+            "en": "What would you like to name your new world?",
+            "fr": "Comment voulez-vous nommer votre nouveau monde ?"
+        },
+        "ask_world_name_join": {
+            "en": "What's the name of the world you'd like to join?",
+            "fr": "Quel est le nom du monde que vous souhaitez rejoindre ?"
+        },
+        "world_exists_error": {
+            "en": "This world already exists. Please choose a different name or join the existing world.",
+            "fr": "Ce monde existe déjà. Veuillez choisir un autre nom ou rejoindre le monde existant."
+        },
+        "world_not_found": {
+            "en": "This world doesn't exist. Would you like to create it?",
+            "fr": "Ce monde n'existe pas. Voulez-vous le créer ?"
+        },
+        
+        # World details
+        "ask_world_genre": {
+            "en": "Describe the world's main genre. Give as much detail as you would like.",
+            "fr": "Décrivez le genre principal du monde. Donnez autant de détails que vous le souhaitez."
+        },
+        "ask_story_directives": {
+            "en": "Are there particular themes or narrative threads you'd like to explore? Let your imagination guide the story's soul.",
+            "fr": "Y a-t-il des thèmes ou des fils narratifs particuliers que vous aimeriez explorer ? Laissez votre imagination guider l'âme de l'histoire."
+        },
+        
+        # Character creation
+        "ask_new_character": {
+            "en": "Do you want to play as a new character? Respond by typing 'yes' or 'no'.",
+            "fr": "Voulez-vous jouer un nouveau personnage ? Répondez en tapant 'oui' ou 'non'."
+        },
+        "ask_character_name_create": {
+            "en": "What would you like to name your new character?",
+            "fr": "Comment voulez-vous nommer votre nouveau personnage ?"
+        },
+        "ask_character_name_join": {
+            "en": "What's the name of the character you'd like to play?",
+            "fr": "Quel est le nom du personnage que vous souhaitez jouer ?"
+        },
+        
+        # Errors
+        "character_exists_error": {
+            "en": "This character already exists in this world. Please choose a different name.",
+            "fr": "Ce personnage existe déjà dans ce monde. Veuillez choisir un autre nom."
+        },
+        "character_not_found": {
+            "en": "This character doesn't exist in this world. Would you like to create it?",
+            "fr": "Ce personnage n'existe pas dans ce monde. Voulez-vous le créer ?"
+        }
+    }
+    
+    return texts.get(key, {}).get(language, texts.get(key, {}).get("en", ""))
+
+def get_multilingual_rag_query(state: StateSchema, query_type: str, **kwargs) -> str:
+    """Generate multilingual RAG queries based on user language"""
+    language = get_user_language(state)
+    
+    queries = {
+        "lore_search": {
+            "en": f"Lore about the world {kwargs.get('world_name', 'Unknown World')}",
+            "fr": f"Histoire et traditions du monde {kwargs.get('world_name', 'Monde Inconnu')}"
+        },
+        "story_events": {
+            "en": "What has happened so far in the story?",
+            "fr": "Que s'est-il passé jusqu'à présent dans l'histoire ?"
+        },
+        "character_context": {
+            "en": f"Information about characters in world {kwargs.get('world_name', 'Unknown World')}",
+            "fr": f"Informations sur les personnages du monde {kwargs.get('world_name', 'Monde Inconnu')}"
+        }
+    }
+    
+    return queries.get(query_type, {}).get(language, queries.get(query_type, {}).get("en", ""))
+
+def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) -> str:
+    """Generate multilingual LLM prompts based on user language"""
+    language = get_user_language(state)
+    
+    prompts = {
+        # Lore generation
+        "lore_generation": {
+            "en": """
+            ## ROLE
+            You are a storyteller for a procedural RPG game.  
+            You write exciting and mysterious background stories that make the game world "{{world_name}}" feel alive and full of secrets.
+
+            ## OBJECTIVE
+            Your job is to write one rich, standalone paragraph of lore about the world "{{world_name}}" (in normal case).  
+            The text should feel like it comes from an old forgotten book, a story told around a campfire, or an important piece of the world's hidden history.  
+            Use simple words and expressions so that a 15-year-old teenager can understand everything.
+
+            ## EXISTING CONTEXTS
+            Here is information about the world to help guide your story:
+
+            --- WORLD CONTEXT ---
+            {{world_context}}
+            ----------------------
+
+            Here is lore that already exists for this world:
+
+            --- EXISTING LORE CONTEXT ---
+            {{lore_context}}
+            -----------------------------
+
+            Here is character information that already exists for this world:
+
+            --- EXISTING CHARACTER CONTEXT ---
+            {{character_context}}
+            -----------------------------
+
+            ## FORMAT
+            - Write only one detailed paragraph of lore in normal language.
+            - Do not explain the story or add comments about it.
+            - Do not use markdown, bullet points, or code formatting.
+            - Give the answer as a raw Python dictionary exactly like this:
+
+            {
+                "page_content": "string" (a rich lore paragraph that adds to the world's story or history),
+                "metadata": {
+                    "world_name": "{{world_name}}" (in lowercase),
+                    "world_id": "{{world_id}}",
+                    "type": "lore",
+                    "theme": "based on world context",
+                    "tags": "string listing the main themes or ideas" (e.g. 'ancient prophecy, lost kingdom, great battle')
+                }
+            }
+
+            !!! DO NOT USE MARKDOWN OR FORMATTING LIKE ```python. OUTPUT ONLY A RAW PYTHON DICTIONARY. !!!
+            """,
+            "fr": """
+            ## RÔLE
+            Tu es un conteur pour un jeu RPG procédural.  
+            Tu écris des histoires de fond passionnantes et mystérieuses qui rendent le monde "{{world_name}}" vivant et plein de secrets.
+
+            ## OBJECTIF
+            Ton travail est d'écrire un paragraphe autonome et riche de lore sur le monde "{{world_name}}" (en casse normale).  
+            Le texte doit donner l'impression de venir d'un vieux livre oublié, d'une histoire racontée autour d'un feu de camp, ou d'un morceau important de l'histoire cachée du monde.  
+            Utilise des mots et expressions simples pour qu'un adolescent de 15 ans comprenne tout.
+
+            ## CONTEXTES EXISTANTS
+            Voici des informations sur le monde pour guider ton histoire :
+
+            --- CONTEXTE DU MONDE ---
+            {{world_context}}
+            -------------------------
+
+            Voici le lore qui existe déjà pour ce monde :
+
+            --- CONTEXTE DU LORE EXISTANT ---
+            {{lore_context}}
+            ---------------------------------
+
+            Voici les informations sur les personnages existants pour ce monde :
+
+            --- CONTEXTE DES PERSONNAGES EXISTANTS ---
+            {{character_context}}
+            -----------------------------------------
+
+            ## FORMAT
+            - Écris un seul paragraphe détaillé de lore en langage normal.
+            - N'explique pas l'histoire et n'ajoute pas de commentaires.
+            - N'utilise pas de markdown, de puces ou de formatage de code.
+            - Donne la réponse sous forme d'un dictionnaire Python brut exactement comme ceci :
+
+            {
+                "page_content": "string" (un paragraphe de lore riche qui ajoute à l'histoire ou au passé du monde),
+                "metadata": {
+                    "world_name": "{{world_name}}" (en minuscules),
+                    "world_id": "{{world_id}}",
+                    "type": "lore",
+                    "theme": "basé sur le contexte du monde",
+                    "tags": "liste des thèmes ou idées principaux" (ex. 'prophétie ancienne, royaume perdu, grande bataille')
+                }
+            }
+
+            !!! N'UTILISE PAS DE MARKDOWN OU DE FORMATAGE COMME ```python. SORTIE UNIQUEMENT UN DICTIONNAIRE PYTHON BRUT. !!!
+            """
+        },
+        # World summary
+        "world_summary": {
+            "en": """
+            ## ROLE
+            You are a world narrator for a procedural RPG game.  
+            You tell the story of the world "{{world_name}}" in a simple, clear way.
+
+            ## OBJECTIVE
+            Write a short and immersive summary of "{{world_name}}".  
+            It will be used:
+            - At the start of the game to introduce the story,
+            - At any time to remind players what has happened,
+            - As an easy reference for players who may not speak English well.  
+
+            Use simple words and expressions so a 15-year-old teenager can understand everything.
+
+            ## INPUT CONTEXTS
+
+            --- WORLD CONTEXT ---
+            {{world_context}}
+
+            --- LORE CONTEXT ---
+            {{lore_context}}
+
+            --- CHARACTER CONTEXT ---
+            {{character_context}}
+
+            ## STYLE & CONSTRAINTS
+            - Use clear and easy-to-read language for non-native English speakers.
+            - Summarize the main points of the world's story, history, events, and characters so far.
+            - Avoid poetic or overly complicated language.
+            - Keep names and sentences simple.
+            - Tone should be neutral and informative, but still engaging.
+            - You must talk directly to the player (use "you").
+            - Do not include markdown, YAML, code blocks, or bullet points.
+
+            ## FORMAT
+            Return a **single raw string** of one or two short paragraphs (max ~100 words each) covering:
+            - The current state and setting of the world
+            - Key events that have happened so far
+            - Any important characters or recent developments
+
+            !!! DO NOT USE MARKDOWN, YAML, OR FORMATTING. OUTPUT ONLY A RAW STRING. !!!
+            """,
+            "fr": """
+            ## RÔLE
+            Tu es un narrateur de monde pour un jeu RPG procédural.  
+            Tu racontes l'histoire du monde "{{world_name}}" de façon simple et claire.
+
+            ## OBJECTIF
+            Rédige un résumé court et immersif de "{{world_name}}".  
+            Il sera utilisé :
+            - Au début du jeu pour introduire l'histoire,
+            - À tout moment pour rappeler aux joueurs ce qui s'est passé,
+            - Comme référence facile pour les joueurs qui ne parlent pas bien anglais.  
+
+            Utilise des mots et expressions simples pour qu'un adolescent de 15 ans comprenne tout.
+
+            ## CONTEXTES D'ENTRÉE
+
+            --- CONTEXTE DU MONDE ---
+            {{world_context}}
+
+            --- CONTEXTE DU LORE ---
+            {{lore_context}}
+
+            --- CONTEXTE DES PERSONNAGES ---
+            {{character_context}}
+
+            ## STYLE & CONTRAINTES
+            - Utilise un langage clair et facile à lire pour les non-anglophones.
+            - Résume les points principaux de l'histoire, du passé, des événements et des personnages du monde jusqu'à présent.
+            - Évite le langage poétique ou trop compliqué.
+            - Garde les noms et les phrases simples.
+            - Le ton doit être neutre et informatif, mais engageant.
+            - Tu dois absolument t'adresser directement au joueur (utilise "tu").
+            - N'inclus pas de markdown, YAML, blocs de code ou puces.
+
+            ## FORMAT
+            Donne une **seule chaîne brute** d'un ou deux paragraphes courts (max ~100 mots chacun) couvrant :
+            - L'état et le décor actuels du monde
+            - Les événements clés qui se sont produits jusqu'à présent
+            - Les personnages ou développements importants récents
+
+            !!! N'UTILISE PAS DE MARKDOWN, YAML OU DE FORMATAGE. SORTIE UNIQUEMENT UNE CHAÎNE BRUTE. !!!
+            """
+        },
+        # Immediate event summary
+        "immediate_event_summary": {
+            "en": """
+            ## ROLE
+            You are a world narrator for a procedural RPG game.  
+            You tell the story of the world "{{world_name}}" in a simple, clear way.
+
+            ## OBJECTIVE
+            Write a short and immersive summary of what just happened.  
+            It will be used to summarize players what choices they made.
+            Use simple words and expressions so a 15-year-old teenager can understand everything.
+
+            ## INPUT CONTEXTS
+
+            --- EVENT CONTEXT ---
+            {{event_context}}
+
+            --- PLAYER ACTION WITHIN CONTEXT ---
+            {{player_answer}}
+
+            ## STYLE & CONSTRAINTS
+            - Use clear and easy-to-read language for non-native English speakers.
+            - Avoid poetic or overly complicated language.
+            - Keep names and sentences simple.
+            - Tone should be neutral and informative, but still engaging.
+            - You must absolutely talk directly to the player (use "you").
+            - Do not include markdown, YAML, code blocks, or bullet points.
+
+            ## FORMAT
+            Return a **single raw string** of one or two short paragraphs (max ~100 words each) covering:
+            - The current state and setting of the story
+            - The event that just happened
+
+            !!! DO NOT USE MARKDOWN, YAML, OR FORMATTING. OUTPUT ONLY A RAW STRING. !!!
+            """,
+            "fr": """
+            ## RÔLE
+            Tu es un narrateur de monde pour un jeu RPG procédural.  
+            Tu racontes l'histoire du monde "{{world_name}}" de façon simple et claire.
+
+            ## OBJECTIF
+            Rédige un résumé court et immersif de ce qui vient de se passer.  
+            Il servira à rappeler aux joueurs les choix qu'ils ont faits.
+            Utilise des mots et expressions simples pour qu'un adolescent de 15 ans comprenne tout.
+
+            ## CONTEXTES D'ENTRÉE
+
+            --- CONTEXTE DE L'ÉVÉNEMENT ---
+            {{event_context}}
+
+            --- ACTION DU JOUEUR DANS LE CONTEXTE ---
+            {{player_answer}}
+
+            ## STYLE & CONTRAINTES
+            - Utilise un langage clair et facile à lire pour les non-anglophones.
+            - Évite le langage poétique ou trop compliqué.
+            - Garde les noms et les phrases simples.
+            - Le ton doit être neutre et informatif, mais engageant.
+            - Tu dois absolument t'adresser directement au joueur (utilise "tu").
+            - N'inclus pas de markdown, YAML, blocs de code ou puces.
+
+            ## FORMAT
+            Donne une **seule chaîne brute** d'un ou deux paragraphes courts (max ~100 mots chacun) couvrant :
+            - L'état et le décor actuels de l'histoire
+            - L'événement qui vient de se produire
+
+            !!! N'UTILISE PAS DE MARKDOWN, YAML OU DE FORMATAGE. SORTIE UNIQUEMENT UNE CHAÎNE BRUTE. !!!
+            """
+        },
+        # Next prompt
+        "next_prompt": {
+            "en": """
+            ## ROLE
+            You are a story-driven game narrator.
+
+            ## OBJECTIVE
+            Based on the following context, generate a direct and immersive narrative prompt presenting a situation the player must respond to.
+            The player must decide how to proceed in the unfolding story. He should consider his options carefully (for example, the player could make a choice between exploring a dark cave or returning to the safety of the village or the player could attempt to negotiate with a hostile NPC or prepare for a battle.)
+
+            ## CONTEXT
+
+            The player plays as the character named: {{character_name}}.
+
+            --- WORLD CONTEXT ---
+            {{world_context}}
+
+            --- LORE CONTEXT ---
+            {{lore_context}}
+
+            --- CHARACTER CONTEXT ---
+            {{character_context}}
+
+            --- RECENT EVENTS ---
+            {{event_context}}
+
+            ## OUTPUT FORMAT
+            - Output one engaging paragraph in plain text. 
+            - You must talk directly to the player (use "you").
+            - End with an actionnable, concrete question or dilemma regarding an immediate situation.
+
+            !!! DO NOT INCLUDE MARKDOWN OR CODE FORMATTING !!!
+            """,
+            "fr": """
+            ## RÔLE
+            Tu es un narrateur de jeu axé sur l'histoire.
+
+            ## OBJECTIF
+            À partir du contexte suivant, génère une invite narrative directe et immersive présentant une situation à laquelle le joueur doit répondre.
+            Le joueur doit décider comment poursuivre l'histoire en cours. Il doit réfléchir soigneusement à ses options (par exemple, il peut choisir d'explorer une grotte sombre ou de retourner à la sécurité du village, ou encore tenter de négocier avec un PNJ hostile ou se préparer à un combat.)
+
+            ## CONTEXTE
+
+            Le joueur incarne le personnage nommé : {{character_name}}.
+
+            --- CONTEXTE DU MONDE ---
+            {{world_context}}
+
+            --- CONTEXTE DU LORE ---
+            {{lore_context}}
+
+            --- CONTEXTE DES PERSONNAGES ---
+            {{character_context}}
+
+            --- ÉVÉNEMENTS RÉCENTS ---
+            {{event_context}}
+
+            ## FORMAT DE SORTIE
+            - Sors un seul paragraphe accrocheur en texte brut.
+            - Tu dois absolument t'adresser directement au joueur (utilise "tu").
+            - Termine par une question ou un dilemme concret et actionnable concernant une situation immédiate.
+
+            !!! N'INCLUS PAS DE MARKDOWN OU DE FORMATAGE DE CODE !!!
+            """
+        },
+        "world_creation": {
+            "en": """
+            ## ROLE
+            You are a world creator for a procedural RPG game.  
+            You make short and vivid descriptions that help players imagine the world "{{world_name}}" (in normal case).
+
+            ## OBJECTIVE
+            Your job is to write an overview of the world "{{world_name}}".  
+            The text should match the style and theme: {{world_genre}}  
+            You must also follow these extra instructions: {{story_directives}}  
+            Use simple words and expressions so a 15-year-old teenager can understand everything.
+
+            ## FORMAT
+            - Each detail must fit with the given theme and instructions.
+            - Write in a clear and easy-to-read way.
+            - Do not explain or add comments about the story.
+            - Do not use markdown or special formatting.
+            - Return only one valid Python dictionary.
+            - Follow exactly this structure:
+
+            {
+                "page_content": string (a short paragraph introducing the world in a vivid way),
+                "metadata": {
+                    "world_name": "{{world_name}}" (in lowercase),
+                    "genre": "string" (e.g. 'fantasy', 'sci-fi', 'dark fantasy' etc., based on {{world_genre}}),
+                    "dominant_species": "string" (e.g. 'humans', 'elves', 'androids' etc.),
+                    "magic_presence": True or False (if magic exists in the world),
+                    "governance": "string" (e.g. 'monarchy', 'anarchy', 'federation' etc.)
+                }
+            }
+
+            !!! DO NOT USE MARKDOWN OR FORMATTING LIKE ```python. OUTPUT ONLY A RAW PYTHON DICTIONARY. !!!
+            """,
+            "fr": """
+            ## RÔLE
+            Tu es un créateur de monde pour un jeu RPG procédural.  
+            Tu créées des descriptions courtes et vivantes qui aident les joueurs à imaginer le monde "{{world_name}}" (en casse normale).
+
+            ## OBJECTIF
+            Ton travail est d'écrire un aperçu du monde "{{world_name}}".  
+            Le texte doit correspondre au style et au thème : {{world_genre}}  
+            Tu dois aussi suivre ces instructions supplémentaires : {{story_directives}}  
+            Utilise des mots et expressions simples pour qu'un adolescent de 15 ans comprenne tout.
+
+            ## FORMAT
+            - Chaque détail doit correspondre au thème et aux instructions donnés.
+            - Écris de manière claire et facile à lire.
+            - N'explique pas et n'ajoute pas de commentaires sur l'histoire.
+            - N'utilise pas de markdown ou de formatage spécial.
+            - Retourne seulement un dictionnaire Python valide.
+            - Suis exactement cette structure :
+
+            {
+                "page_content": string (un court paragraphe présentant le monde de manière vivante),
+                "metadata": {
+                    "world_name": "{{world_name}}" (en minuscules),
+                    "genre": "string" (ex. 'fantasy', 'sci-fi', 'dark fantasy' etc., basé sur {{world_genre}}),
+                    "dominant_species": "string" (ex. 'humans', 'elves', 'androids' etc.),
+                    "magic_presence": True ou False (si la magie existe dans le monde),
+                    "governance": "string" (ex. 'monarchy', 'anarchy', 'federation' etc.)
+                }
+            }
+
+            !!! N'UTILISE PAS DE MARKDOWN OU DE FORMATAGE COMME ```python. SORTIE UNIQUEMENT UN DICTIONNAIRE PYTHON BRUT. !!!
+            """
+        },
+        
+        "character_creation": {
+            "en": """
+            ## ROLE
+            You are a character creator for a procedural RPG game.  
+            You make vivid, easy-to-imagine characters who fit well into fantasy or science-fiction worlds.
+
+            ## OBJECTIVE
+            Your task is to write a detailed and engaging character profile for "{{character_name}}" based on the following:
+
+            - Character gender: {{character_gender}}
+            - Character concept or description: "{{character_description}}"
+            - World name: {{world_name}}
+            - World ID: {{world_id}}
+
+            Use the world as inspiration, but focus on making the character unique and memorable, with a clear personality, role, and background.  
+            Use simple words and expressions so a 15-year-old teenager can understand everything.
+
+            ## EXISTING CONTEXTS
+            Here is information about the world to help guide your thinking:
+
+            --- WORLD CONTEXT ---
+            {{world_context}}
+            ----------------------
+
+            Here is lore that already exists for this world:
+
+            --- EXISTING LORE CONTEXT ---
+            {{lore_context}}
+            -----------------------------
+
+            ## FORMAT & STYLE
+            - Write one strong paragraph describing the character's past, personality traits, abilities, and role in the story.
+            - Avoid overused ideas unless you twist them in an original way.
+            - Keep it immersive but easy to read — like a game character codex.
+            - Do NOT include markdown, YAML, or bullet points.
+            - Output a single valid Python dictionary using exactly this format:
+
+            {
+                "page_content": "string" (a well-written character overview),
+                "metadata": {
+                    "character_name": "{{character_name}}" (in lowercase),
+                    "world_id": "{{world_id}}",
+                    "world_name": "{{world_name}}" (in lowercase),
+                    "character_gender": "{{character_gender}}",
+                    "short_description": "short summary of the character's role and personality"
+                }
+            }
+
+            !!! DO NOT USE MARKDOWN OR FORMATTING LIKE ```python. OUTPUT ONLY A RAW PYTHON DICTIONARY. !!!
+            """,
+            "fr": """
+            ## RÔLE
+            Tu es un créateur de personnage pour un jeu RPG procédural.  
+            Tu créées des personnages vivants et faciles à imaginer qui s'intègrent bien dans des mondes fantastiques ou de science-fiction.
+
+            ## OBJECTIF
+            Ta tâche est d'écrire un profil de personnage détaillé et captivant pour "{{character_name}}" basé sur ce qui suit :
+
+            - Genre du personnage : {{character_gender}}
+            - Concept ou description du personnage : "{{character_description}}"
+            - Nom du monde : {{world_name}}
+            - ID du monde : {{world_id}}
+
+            Utilise le monde comme inspiration, mais concentre-toi sur la création d'un personnage unique et mémorable, avec une personnalité claire, un rôle et un background.  
+            Utilise des mots et expressions simples pour qu'un adolescent de 15 ans comprenne tout.
+
+            ## CONTEXTES EXISTANTS
+            Voici des informations sur le monde pour guider ta réflexion :
+
+            --- CONTEXTE DU MONDE ---
+            {{world_context}}
+            -------------------------
+
+            Voici le lore qui existe déjà pour ce monde :
+
+            --- CONTEXTE DU LORE EXISTANT ---
+            {{lore_context}}
+            ---------------------------------
+
+            ## FORMAT & STYLE
+            - Écris un paragraphe solide décrivant le passé du personnage, ses traits de personnalité, ses capacités et son rôle dans l'histoire.
+            - Évite les idées trop utilisées sauf si tu leur donnes une tournure originale.
+            - Garde-le immersif mais facile à lire — comme un codex de personnage de jeu.
+            - N'inclus PAS de markdown, YAML ou de puces.
+            - Sors un seul dictionnaire Python valide en utilisant exactement ce format :
+
+            {
+                "page_content": "string" (un aperçu de personnage bien écrit),
+                "metadata": {
+                    "character_name": "{{character_name}}" (en minuscules),
+                    "world_id": "{{world_id}}",
+                    "world_name": "{{world_name}}" (en minuscules),
+                    "character_gender": "{{character_gender}}",
+                    "short_description": "résumé court du rôle et de la personnalité du personnage"
+                }
+            }
+
+            !!! N'UTILISE PAS DE MARKDOWN OU DE FORMATAGE COMME ```python. SORTIE UNIQUEMENT UN DICTIONNAIRE PYTHON BRUT. !!!
+            """
+        }
+    }
+    
+    return prompts.get(prompt_type, {}).get(language, prompts.get(prompt_type, {}).get("en", ""))
 
 # ------------------------------------------------------------------ #
 #                       Audio Utility Functions                      #
@@ -152,22 +784,21 @@ def get_player_answer(cue: str, force_type: bool = False) -> str:
 
 @traceable(run_type="chain", name="Ask player if they want to create a new world")
 def ask_if_new_world(state: StateSchema) -> StateSchema:
-    cue = (
-        "Welcome to Odyssai. "
-        "Start by answering a few questions and let's get started! "
-        "Do you want to create a new world? Respond by typing 'yes' or 'no'."
-    )
+    cue = get_i18n_text(state, "welcome")
     response = get_player_answer(cue, force_type=True).lower()
-    state["create_new_world"] = response in ["yes", "y"]
+    
+    # Handle both languages for positive responses
+    positive_responses = ["yes", "y", "oui", "o"]
+    state["create_new_world"] = response in positive_responses
     return state
 
 
 @traceable(run_type="chain", name="Ask for the name of the world")
 def ask_world_name(state: StateSchema) -> StateSchema:
     if state.get("create_new_world"):
-        cue = "How would you like to name your world?"
+        cue = get_i18n_text(state, "ask_world_name_create")
     else:
-        cue = "Which existing world would you like to enter?"
+        cue = get_i18n_text(state, "ask_world_name_join")
 
     world_name = get_player_answer(cue, force_type=True)
     state["world_name"] = world_name.strip().lower()
@@ -253,7 +884,7 @@ def check_character_exists_by_id(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="Ask for the genre of the world")
 def ask_world_genre(state: StateSchema) -> StateSchema:
-    cue = "Describe the world’s main genre. Give as much detail as you would like. "
+    cue = get_i18n_text(state, "ask_world_genre")
     world_genre = get_player_answer(cue)
     state["world_genre"] = (
         world_genre.strip() if world_genre else "Choose a random genre"
@@ -263,7 +894,7 @@ def ask_world_genre(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="Ask for story directives")
 def ask_story_directives(state: StateSchema) -> StateSchema:
-    cue = "Are there particular themes or narrative threads you’d like to explore? Let your imagination guide the story’s soul."
+    cue = get_i18n_text(state, "ask_story_directives")
     story_directives = get_player_answer(cue)
     state["story_directives"] = (
         story_directives.strip()
@@ -276,44 +907,14 @@ def ask_story_directives(state: StateSchema) -> StateSchema:
 @traceable(run_type="chain", name="LLM Generate World Data")
 def llm_generate_world_data(state: StateSchema) -> StateSchema:
     if state.get("source") == "cli":
-        cue = "I am generating the data for your new world. This may take a few moments, please be patient..."
+        cue = get_i18n_text(state, "generating_world_data")
         print("\n")
         play_and_type(cue, width=TERMINAL_WIDTH)
 
     state["active_step"] = "world_creation"
 
-    prompt_template = """
-    ## ROLE
-    You are a world creator for a procedural RPG game.  
-    You make short and vivid descriptions that help players imagine the world "{{world_name}}" (in normal case).
-
-    ## OBJECTIVE
-    Your job is to write an overview of the world "{{world_name}}".  
-    The text should match the style and theme: {{world_genre}}  
-    You must also follow these extra instructions: {{story_directives}}  
-    Use simple words and expressions so a 15-year-old teenager can understand everything.
-
-    ## FORMAT
-    - Each detail must fit with the given theme and instructions.
-    - Write in a clear and easy-to-read way.
-    - Do not explain or add comments about the story.
-    - Do not use markdown or special formatting.
-    - Return only one valid Python dictionary.
-    - Follow exactly this structure:
-
-    {
-        "page_content": string (a short paragraph introducing the world in a vivid way),
-        "metadata": {
-            "world_name": "{{world_name}}" (in lowercase),
-            "genre": "string" (e.g. 'fantasy', 'sci-fi', 'dark fantasy' etc., based on {{world_genre}}),
-            "dominant_species": "string" (e.g. 'humans', 'elves', 'androids' etc.),
-            "magic_presence": True or False (if magic exists in the world),
-            "governance": "string" (e.g. 'monarchy', 'anarchy', 'federation' etc.)
-        }
-    }
-
-    !!! DO NOT USE MARKDOWN OR FORMATTING LIKE ```python. OUTPUT ONLY A RAW PYTHON DICTIONARY. !!!
-    """
+    # Get multilingual prompt template
+    prompt_template = get_multilingual_llm_prompt(state, "world_creation")
 
     prompt = PromptTemplate.from_template(prompt_template, template_format="jinja2")
     formatted_prompt = prompt.format(
@@ -355,18 +956,18 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="Ask player if they want to create a new character")
 def ask_create_new_character(state: StateSchema) -> StateSchema:
-    cue = "Do you want to play as a new character? Respond by typing 'yes' or 'no'."
+    cue = get_i18n_text(state, "ask_new_character")
     response = get_player_answer(cue, force_type=True).lower()
-    state["create_new_character"] = response in ["yes", "y"]
+    state["create_new_character"] = response in ["yes", "y", "oui", "o"]
     return state
 
 
 @traceable(run_type="chain", name="Ask for the name of the character")
 def ask_new_character_name(state: StateSchema) -> StateSchema:
     if state.get("create_new_character"):
-        cue = "How would you like to name your character? "
+        cue = get_i18n_text(state, "ask_character_name_create")
     else:
-        cue = "What is the name of the character you want to play as? "
+        cue = get_i18n_text(state, "ask_character_name_join")
 
     character_name = get_player_answer(cue, force_type=True)
     state["character_name"] = character_name.strip().lower()
@@ -392,10 +993,7 @@ def check_character_exists(state: StateSchema) -> StateSchema:
     character_exists = len(result["ids"]) > 0
 
     if character_exists and state.get("create_new_character"):
-        cue = (
-            f"The character '{state.get('character_name')}' already exists. "
-            "Please restart the process and choose a different name."
-        )
+        cue = get_i18n_text(state, "character_exists_error")
         if state.get("source") == "cli":
             print("\n")
             play_and_type(cue, width=TERMINAL_WIDTH)
@@ -404,10 +1002,7 @@ def check_character_exists(state: StateSchema) -> StateSchema:
         else:
             raise ValueError(cue)
     elif not character_exists and not state.get("create_new_character"):
-        cue = (
-            f"The character '{state.get('character_name')}' does not exist. "
-            "You must choose a different name or create a new character."
-        )
+        cue = get_i18n_text(state, "character_not_found")
         if state.get("source") == "cli":
             print("\n")
             play_and_type(cue, width=TERMINAL_WIDTH)
@@ -424,8 +1019,10 @@ def check_character_exists(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="Ask for character details")
 def ask_character_details(state: StateSchema) -> StateSchema:
-    character_gender = get_player_answer("What is your character's gender? ")
-    character_description = get_player_answer("What is your character's description? ")
+    gender_cue = get_i18n_text(state, "ask_character_gender")
+    desc_cue = get_i18n_text(state, "ask_character_description")
+    character_gender = get_player_answer(gender_cue)
+    character_description = get_player_answer(desc_cue)
 
     state["character_gender"] = (
         character_gender.strip() if character_gender else "Generate a character gender"
@@ -442,61 +1039,12 @@ def ask_character_details(state: StateSchema) -> StateSchema:
 @traceable(run_type="chain", name="LLM Generate Character Data")
 def llm_generate_character_data(state: StateSchema) -> StateSchema:
     if state.get("source") == "cli":
-        cue = "I am generating your character data. This may take a few moments, please be patient..."
+        cue = get_i18n_text(state, "generating_character_data")
         play_and_type(cue, width=TERMINAL_WIDTH)
 
     state["active_step"] = "character_creation"
 
-    prompt_template = """
-    ## ROLE
-    You are a character creator for a procedural RPG game.  
-    You make vivid, easy-to-imagine characters who fit well into fantasy or science-fiction worlds.
-
-    ## OBJECTIVE
-    Your task is to write a detailed and engaging character profile for "{{character_name}}" based on the following:
-
-    - Character gender: {{character_gender}}
-    - Character concept or description: "{{character_description}}"
-    - World name: {{world_name}}
-    - World ID: {{world_id}}
-
-    Use the world as inspiration, but focus on making the character unique and memorable, with a clear personality, role, and background.  
-    Use simple words and expressions so a 15-year-old teenager can understand everything.
-
-    ## EXISTING CONTEXTS
-    Here is information about the world to help guide your thinking:
-
-    --- WORLD CONTEXT ---
-    {{world_context}}
-    ----------------------
-
-    Here is lore that already exists for this world:
-
-    --- EXISTING LORE CONTEXT ---
-    {{lore_context}}
-    -----------------------------
-
-    ## FORMAT & STYLE
-    - Write one strong paragraph describing the character’s past, personality traits, abilities, and role in the story.
-    - Avoid overused ideas unless you twist them in an original way.
-    - Keep it immersive but easy to read — like a game character codex.
-    - Do NOT include markdown, YAML, or bullet points.
-    - Output a single valid Python dictionary using exactly this format:
-
-    {
-        "page_content": "string" (a well-written character overview),
-        "metadata": {
-            "character_name": "{{character_name}}" (in lowercase),
-            "world_id": "{{world_id}}",
-            "world_name": "{{world_name}}" (in lowercase),
-            "character_gender": "{{character_gender}}",
-            "short_description": "short summary of the character's role and personality"
-        }
-    }
-
-    !!! DO NOT USE MARKDOWN OR FORMATTING LIKE ```python. OUTPUT ONLY A RAW PYTHON DICTIONARY. !!!
-    """
-
+    prompt_template = get_multilingual_llm_prompt(state, "character_creation")
     prompt = PromptTemplate.from_template(prompt_template, template_format="jinja2")
     formatted_prompt = prompt.format(
         character_name=state.get(
@@ -585,7 +1133,8 @@ def get_all_worlds() -> list[dict]:
         }
         worlds_list.append(world_data)
     
-    return worlds_list
+    # Return at most 3 random worlds
+    return random.sample(worlds_list, min(3, len(worlds_list)))
 
 
 @traceable(run_type="chain", name="Get lore context")
@@ -605,7 +1154,7 @@ def get_lore_context(state: StateSchema) -> StateSchema:
         },
     )
 
-    query = f"Lore about the world {state.get('world_name', 'Unknown World')}"
+    query = get_multilingual_rag_query(state, "lore_search", world_name=state.get('world_name', 'Unknown World'))
     result = retriever.invoke(query)
 
     if len(result) > 0:
@@ -636,66 +1185,19 @@ def get_character_context(state: StateSchema) -> StateSchema:
 @traceable(run_type="chain", name="LLM Generate Lore Data")
 def llm_generate_lore_data(state: StateSchema) -> StateSchema:
     if state.get("source") == "cli":
-        cue = "I am now imagining an additional layer of depth to the lore. This may take a few moments, please be patient..."
+        cue = get_i18n_text(state, "generating_lore_data")
         print("\n")
         play_and_type(cue, width=TERMINAL_WIDTH)
 
     state["active_step"] = "lore_generation"
 
-    prompt_template = """
-    ## ROLE
-    You are a storyteller for a procedural RPG game.  
-    You write exciting and mysterious background stories that make the game world "{{world_name}}" feel alive and full of secrets.
-
-    ## OBJECTIVE
-    Your job is to write one rich, standalone paragraph of lore about the world "{{world_name}}" (in normal case).  
-    The text should feel like it comes from an old forgotten book, a story told around a campfire, or an important piece of the world's hidden history.  
-    Use simple words and expressions so that a 15-year-old teenager can understand everything.
-
-    ## EXISTING CONTEXTS
-    Here is information about the world to help guide your story:
-
-    --- WORLD CONTEXT ---
-    {{world_context}}
-    ----------------------
-
-    Here is lore that already exists for this world:
-
-    --- EXISTING LORE CONTEXT ---
-    {{lore_context}}
-    -----------------------------
-
-    Here is character information that already exists for this world:
-
-    --- EXISTING CHARACTER CONTEXT ---
-    {{character_context}}
-    -----------------------------
-
-    ## FORMAT
-    - Write only one detailed paragraph of lore in normal language.
-    - Do not explain the story or add comments about it.
-    - Do not use markdown, bullet points, or code formatting.
-    - Give the answer as a raw Python dictionary exactly like this:
-
-    {
-        "page_content": "string" (a rich lore paragraph that adds to the world's story or history),
-        "metadata": {
-            "world_name": "{{world_name}}" (in lowercase),
-            "world_id": "{{world_id}}",
-            "type": "lore",
-            "theme": "based on world context",
-            "tags": "string listing the main themes or ideas" (e.g. 'ancient prophecy, lost kingdom, great battle')
-        }
-    }
-
-    !!! DO NOT USE MARKDOWN OR FORMATTING LIKE ```python. OUTPUT ONLY A RAW PYTHON DICTIONARY. !!!
-    """
-
+    prompt_template = get_multilingual_llm_prompt(state, "lore_generation")
     prompt = PromptTemplate.from_template(prompt_template, template_format="jinja2")
     formatted_prompt = prompt.format(
         world_name=state.get("world_name", "World name not provided."),
         world_context=state.get("world_context", "No world context available yet."),
         lore_context=state.get("lore_context", "No lore context available yet."),
+        character_context=state.get("character_context", "No character context available yet."),
         world_id=state.get("world_id", str(uuid4())),
     )
     truncated_prompt = truncate_structured_prompt(formatted_prompt)
@@ -727,53 +1229,11 @@ def llm_generate_lore_data(state: StateSchema) -> StateSchema:
 @traceable(run_type="chain", name="LLM Generate World Summary")
 def llm_generate_world_summary(state: StateSchema) -> StateSchema:
     if state.get("source") == "cli":
-        cue = "I am now summarizing your story. This may take a few moments, please be patient..."
+        cue = get_i18n_text(state, "summarizing_story")
         print("\n")
         play_and_type(cue, width=TERMINAL_WIDTH)
 
-    prompt_template = """
-    ## ROLE
-    You are a world narrator for a procedural RPG game.  
-    You tell the story of the world "{{world_name}}" in a simple, clear way.
-
-    ## OBJECTIVE
-    Write a short and immersive summary of "{{world_name}}".  
-    It will be used:
-    - At the start of the game to introduce the story,
-    - At any time to remind players what has happened,
-    - As an easy reference for players who may not speak English well.  
-
-    Use simple words and expressions so a 15-year-old teenager can understand everything.
-
-    ## INPUT CONTEXTS
-
-    --- WORLD CONTEXT ---
-    {{world_context}}
-
-    --- LORE CONTEXT ---
-    {{lore_context}}
-
-    --- CHARACTER CONTEXT ---
-    {{character_context}}
-
-    ## STYLE & CONSTRAINTS
-    - Use clear and easy-to-read language for non-native English speakers.
-    - Summarize the main points of the world's story, history, events, and characters so far.
-    - Avoid poetic or overly complicated language.
-    - Keep names and sentences simple.
-    - Tone should be neutral and informative, but still engaging.
-    - You must talk directly to the player (use "you").
-    - Do not include markdown, YAML, code blocks, or bullet points.
-
-    ## FORMAT
-    Return a **single raw string** of one or two short paragraphs (max ~100 words each) covering:
-    - The current state and setting of the world
-    - Key events that have happened so far
-    - Any important characters or recent developments
-
-    !!! DO NOT USE MARKDOWN, YAML, OR FORMATTING. OUTPUT ONLY A RAW STRING. !!!
-    """
-
+    prompt_template = get_multilingual_llm_prompt(state, "world_summary")
     prompt = PromptTemplate.from_template(prompt_template, template_format="jinja2")
     formatted_prompt = prompt.format(
         world_name=state.get("world_name", "World name not provided."),
@@ -809,40 +1269,7 @@ def llm_generate_world_summary(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="LLM Generate Immediate Event Summary")
 def llm_generate_immediate_event_summary(state: StateSchema) -> StateSchema:
-    prompt_template = """
-    ## ROLE
-    You are a world narrator for a procedural RPG game.  
-    You tell the story of the world "{{world_name}}" in a simple, clear way.
-
-    ## OBJECTIVE
-    Write a short and immersive summary of what just happened.  
-    It will be used to summarize players what choix they made.
-    Use simple words and expressions so a 15-year-old teenager can understand everything.
-
-    ## INPUT CONTEXTS
-
-    --- EVENT CONTEXT ---
-    {{event_context}}
-
-    --- PLAYER ACTION WITHIN CONTEXT ---
-    {{player_answer}}
-
-    ## STYLE & CONSTRAINTS
-    - Use clear and easy-to-read language for non-native English speakers.
-    - Avoid poetic or overly complicated language.
-    - Keep names and sentences simple.
-    - Tone should be neutral and informative, but still engaging.
-    - You must absolutely talk directly to the player (use "you").
-    - Do not include markdown, YAML, code blocks, or bullet points.
-
-    ## FORMAT
-    Return a **single raw string** of one or two short paragraphs (max ~100 words each) covering:
-    - The current state and setting of the story
-    - The event that just happened
-
-    !!! DO NOT USE MARKDOWN, YAML, OR FORMATTING. OUTPUT ONLY A RAW STRING. !!!
-    """
-
+    prompt_template = get_multilingual_llm_prompt(state, "immediate_event_summary")
     prompt = PromptTemplate.from_template(prompt_template, template_format="jinja2")
     formatted_prompt = prompt.format(
         world_name=state.get("world_name", "World name not provided."),
@@ -889,7 +1316,7 @@ def get_event_context(state: StateSchema) -> StateSchema:
         search_type="mmr",
         search_kwargs={"k": 10},
     )
-    results = retriever.invoke("What has happened so far in the story?")
+    results = retriever.invoke(get_multilingual_rag_query(state, "story_events"))
 
     state["event_context"] = "\n".join([doc.page_content for doc in results])
     return state
@@ -897,37 +1324,7 @@ def get_event_context(state: StateSchema) -> StateSchema:
 
 @traceable(run_type="chain", name="LLM generate next narrative cue")
 def llm_generate_next_prompt(state: StateSchema) -> StateSchema:
-    prompt_template = """
-    ## ROLE
-    You are a story-driven game narrator.
-
-    ## OBJECTIVE
-    Based on the following context, generate a direct and immersive narrative prompt presenting a situation the player must respond to.
-    The player must decide how to proceed in the unfolding story. He should consider his options carefully (for example, the player could make a choice between exploring a dark cave or returning to the safety of the village or the player could attempt to negotiate with a hostile NPC or prepare for a battle.)
-
-    ## CONTEXT
-
-    The player plays as the character named: {{character_name}}.
-
-    --- WORLD CONTEXT ---
-    {{world_context}}
-
-    --- LORE CONTEXT ---
-    {{lore_context}}
-
-    --- CHARACTER CONTEXT ---
-    {{character_context}}
-
-    --- RECENT EVENTS ---
-    {{event_context}}
-
-    ## OUTPUT FORMAT
-    - Output one engaging paragraph in plain text. 
-    - You must talk directly to the player (use "you").
-    - End with an actionnable, concrete question or dilemma regarding an immediate situation.
-
-    !!! DO NOT INCLUDE MARKDOWN OR CODE FORMATTING !!!
-    """
+    prompt_template = get_multilingual_llm_prompt(state, "next_prompt")
     prompt = PromptTemplate.from_template(prompt_template, template_format="jinja2")
     formatted_prompt = prompt.format(
         world_context=state.get("world_context", ""),
@@ -992,9 +1389,9 @@ def record_player_response(state: StateSchema) -> StateSchema:
 @traceable(run_type="chain", name="Ask if player wants to continue")
 def ask_to_continue_or_stop(state: StateSchema) -> StateSchema:
     time.sleep(7.5)
-    cue = "Do you wish to continue? Respond by typing 'yes' or 'no'."
+    cue = get_i18n_text(state, "ask_continue")
     answer = get_player_answer(cue, force_type=True).strip().lower()
-    state["continue_story"] = answer in ["yes", "y"]
+    state["continue_story"] = answer in ["yes", "y", "oui", "o"]
     return state
 
 
@@ -1051,7 +1448,7 @@ def check_input_validity(
     res = "__valid__"
 
     if not state.get("user_input"):
-        cue = "It seems you haven't provided any input. Let's try again."
+        cue = get_i18n_text(state, "input_missing")
         print("\n")
         play_and_type(cue, width=TERMINAL_WIDTH)
         res = "__invalid__"

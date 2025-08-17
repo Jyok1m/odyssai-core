@@ -1,6 +1,10 @@
 from flask import Blueprint, jsonify, request
 from typing import Dict
 from odyssai_core.modules.validators import check_empty_fields
+from odyssai_core.utils.i18n import (
+    create_error_response, 
+    create_success_response
+)
 from odyssai_core.workflows import main_graph
 
 # Create the worlds blueprint
@@ -37,15 +41,24 @@ def list_worlds():
 def create_world():
     """Create a new narrative world"""
     data: CreateWorldRequestSchema = request.get_json()
+    
+    # Get language from query parameters (default to 'en')
+    language = request.args.get('lang', 'en')
+    if language not in ['fr', 'en']:
+        language = 'en'
 
     validation_result = check_empty_fields(
         data, ["world_name", "world_genre", "story_directives"]
     )
     if not validation_result["result"]:
-        return jsonify(validation_result), 400
+        error_response, status_code = create_error_response(
+            language, "missing_fields", 400
+        )
+        return jsonify(error_response), status_code
 
     state: main_graph.StateSchema = {
         "source": "api",
+        "user_language": language,  # Add language to state
         "create_new_world": True,
         "world_name": str(data["world_name"]).strip().lower(),
         "world_genre": str(data["world_genre"]).strip().lower(),
@@ -84,25 +97,37 @@ def create_world():
         result = workflow.invoke(state)
 
     except Exception as e:
-        return jsonify(
-            {"success": False, "error": str(e), "error_type": e.__class__.__name__}
-        ), 500
+        error_response, status_code = create_error_response(
+            language, "internal_error", 500
+        )
+        error_response["error_details"] = str(e)
+        error_response["error_type"] = e.__class__.__name__
+        return jsonify(error_response), status_code
 
-    return jsonify(
+    success_response, status_code = create_success_response(
+        language,
+        "world_created",
         {
-            "success": True,
             "world_name": result["world_name"],
             "world_id": result["world_id"],
-            "synopsis": result["world_summary"],
-        }
-    ), 201
+            "synopsis": result["world_summary"]
+        },
+        201
+    )
+    return jsonify(success_response), status_code
 
 
 @worlds_bp.route("/<world_id>/synopsis", methods=["GET"])
 def get_world_synopsis(world_id: str):
     """Get a synopsis of an existing world"""
+    # Get language from query parameters (default to 'en')
+    language = request.args.get('lang', 'en')
+    if language not in ['fr', 'en']:
+        language = 'en'
+        
     state: main_graph.StateSchema = {
         "source": "api",
+        "user_language": language,
         "world_id": world_id,
     }
 
@@ -133,17 +158,23 @@ def get_world_synopsis(world_id: str):
         result = workflow.invoke(state)
 
     except Exception as e:
-        return jsonify(
-            {"success": False, "error": str(e), "error_type": e.__class__.__name__}
-        ), 500
+        error_response, status_code = create_error_response(
+            language, "internal_error", 500
+        )
+        error_response["error_details"] = str(e)
+        error_response["error_type"] = e.__class__.__name__
+        return jsonify(error_response), status_code
 
-    return jsonify(
+    success_response, status_code = create_success_response(
+        language,
+        "world_synopsis_generated",
         {
-            "success": True,
             "world_id": result.get("world_id"),
-            "synopsis": result.get("world_summary"),
-        }
-    ), 200
+            "synopsis": result.get("world_summary")
+        },
+        200
+    )
+    return jsonify(success_response), status_code
 
 
 @worlds_bp.route("/check", methods=["GET"])
@@ -151,12 +182,21 @@ def check_world():
     """Check if a world exists by name or ID"""
     world_name = request.args.get("world_name")
     world_id = request.args.get("world_id")
+    
+    # Get language from query parameters (default to 'en')
+    language = request.args.get('lang', 'en')
+    if language not in ['fr', 'en']:
+        language = 'en'
 
     if not world_name and not world_id:
-        return jsonify({"error": "Either world_name or world_id parameter is required"}), 400
+        error_response, status_code = create_error_response(
+            language, "world_name_or_id_required", 400
+        )
+        return jsonify(error_response), status_code
 
     state: main_graph.StateSchema = {
         "source": "api",
+        "user_language": language,
     }
 
     if world_id:
@@ -179,27 +219,36 @@ def check_world():
         workflow = graph.compile()
         result = workflow.invoke(state)
 
-        return jsonify(
+        success_response, status_code = create_success_response(
+            language,
+            "world_found",
             {
-                "success": True,
                 "exists": True,
                 "world_id": result.get("world_id"),
-                "world_name": result.get("world_name"),
-            }
-        ), 200
+                "world_name": result.get("world_name")
+            },
+            200
+        )
+        return jsonify(success_response), status_code
 
     except Exception as e:
         # If the world doesn't exist, the workflow will raise an exception
         if "does not exist" in str(e).lower() or "not found" in str(e).lower():
-            return jsonify(
+            success_response, status_code = create_success_response(
+                language,
+                "world_not_found",
                 {
-                    "success": True,
                     "exists": False,
                     "world_id": world_id,
-                    "world_name": world_name,
-                }
-            ), 200
+                    "world_name": world_name
+                },
+                200
+            )
+            return jsonify(success_response), status_code
         
-        return jsonify(
-            {"success": False, "error": str(e), "error_type": e.__class__.__name__}
-        ), 500
+        error_response, status_code = create_error_response(
+            language, "internal_error", 500
+        )
+        error_response["error_details"] = str(e)
+        error_response["error_type"] = e.__class__.__name__
+        return jsonify(error_response), status_code

@@ -7,7 +7,7 @@ from odyssai_core.routes.characters import characters_bp
 from odyssai_core.routes.gameplay import gameplay_bp
 from odyssai_core.routes.users import users_bp
 
-
+#
 app = Flask(__name__, template_folder="templates", static_folder="static")
 
 # Configure CORS

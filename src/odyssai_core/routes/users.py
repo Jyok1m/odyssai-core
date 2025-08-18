@@ -171,6 +171,20 @@ def login_user():
     )
     return jsonify(success_response), status_code
 
+@users_bp.route("/check-username", methods=["GET"])
+def check_username_exists():
+    """Check if a username exists in the database"""
+    username = request.args.get('username')
+    
+    # Validate required parameter
+    if not username:
+        return jsonify({"exists": False}), 404
+    
+    # Check if user exists
+    existing_user = client.find_one("users", {"username": username})
+    
+    return jsonify({"exists": bool(existing_user)}), 200
+
 @users_bp.route("/add-data", methods=["POST"])
 def add_data():
     """Update user's current game context (world and/or character)"""

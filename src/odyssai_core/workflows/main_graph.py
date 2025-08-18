@@ -320,7 +320,7 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
                     "world_id": "{{world_id}}",
                     "type": "lore",
                     "theme": "basé sur le contexte du monde",
-                    "tags": "liste des thèmes ou idées principaux" (ex. 'prophétie ancienne, royaume perdu, grande bataille')
+                    "tags": "liste des thèmes ou idées principaux sous forme de chaîne de caractères !!!" (ex. 'prophétie ancienne, royaume perdu, grande bataille')
                 }
             }
 
@@ -840,7 +840,7 @@ def check_world_exists(state: StateSchema) -> StateSchema:
             state["must_restart_init"] = True
             return state
         else:
-            raise ValueError(cue)
+            raise ValueError("does not exist")
 
     state["must_restart_init"] = False
     state["create_new_world"] = not world_exists
@@ -1000,7 +1000,7 @@ def check_character_exists(state: StateSchema) -> StateSchema:
             state["must_restart_character"] = True
             return state
         else:
-            raise ValueError(cue)
+            raise ValueError("does not exist")
     elif not character_exists and not state.get("create_new_character"):
         cue = get_i18n_text(state, "character_not_found")
         if state.get("source") == "cli":
@@ -1009,7 +1009,7 @@ def check_character_exists(state: StateSchema) -> StateSchema:
             state["must_restart_character"] = True
             return state
         else:
-            raise ValueError(cue)
+            raise ValueError("not found")
 
     state["must_restart_character"] = False
     state["create_new_character"] = not character_exists

@@ -50,10 +50,12 @@ def create_world():
     validation_result = check_empty_fields(
         data, ["world_name", "world_genre", "story_directives"]
     )
+
     if not validation_result["result"]:
         error_response, status_code = create_error_response(
             language, "missing_fields", 400
         )
+        
         return jsonify(error_response), status_code
 
     state: main_graph.StateSchema = {

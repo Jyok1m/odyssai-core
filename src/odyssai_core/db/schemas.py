@@ -25,10 +25,17 @@ class UserSchema:
     created_at: datetime
 
     # Game info
-    current_world_id: Optional[str] = None
-    current_world_name: Optional[str] = None
-    current_character_id: Optional[str] = None
-    current_character_name: Optional[str] = None
+    current_is_new_world: Optional[bool] = True
+    current_world_id: Optional[str] = ""
+    current_world_name: Optional[str] = ""
+    current_world_genre: Optional[str] = ""
+    current_story_directives: Optional[str] = ""
+
+    current_is_new_character: Optional[bool] = True
+    current_character_id: Optional[str] = ""
+    current_character_name: Optional[str] = ""
+    current_character_genre: Optional[str] = ""
+    current_character_description: Optional[str] = ""
 
     # User preferences
     language: str = "en"  # Default to English ('en' or 'fr')

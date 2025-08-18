@@ -202,18 +202,30 @@ def add_data():
     
     # Prepare update data
     update_data = {}
-    
+
     if "world_name" in data and data["world_name"]:
         update_data["current_world_name"] = data["world_name"]
     
     if "world_id" in data and data["world_id"]:
         update_data["current_world_id"] = data["world_id"]
-    
+
+    if "world_genre" in data and data["world_genre"]:
+        update_data["current_world_genre"] = data["world_genre"]
+
+    if "story_directives" in data and data["story_directives"]:
+        update_data["current_story_directives"] = data["story_directives"]
+
     if "character_name" in data and data["character_name"]:
         update_data["current_character_name"] = data["character_name"]
     
     if "character_id" in data and data["character_id"]:
         update_data["current_character_id"] = data["character_id"]
+
+    if "character_genre" in data and data["character_genre"]:
+        update_data["current_character_genre"] = data["character_genre"]
+
+    if "character_description" in data and data["character_description"]:
+        update_data["current_character_description"] = data["character_description"]
     
     # At least one field should be provided
     if not update_data:
@@ -222,6 +234,7 @@ def add_data():
         )
         return jsonify(error_response), status_code
     
+    print(data["user_uuid"], update_data)
     # Update user
     success = client.update_one("users", {"uuid": data["user_uuid"]}, update_data)
     if not success:
@@ -290,7 +303,7 @@ def update_language():
     )
     return jsonify(success_response), status_code
 
-@users_bp.route("/clear-data", methods=["POST"])
+@users_bp.route("/clear-data", methods=["DELETE"])
 def clear_data():
     """Remove user's current game context"""
     data: LeaveGameRequestSchema = request.get_json()
@@ -320,10 +333,16 @@ def clear_data():
     
     # Clear game context
     update_data = {
-        "current_world_name": None,
-        "current_world_id": None,
-        "current_character_name": None,
-        "current_character_id": None
+        "current_is_new_world": True,
+        "current_world_id": "",
+        "current_world_name": "",
+        "current_world_genre": "",
+        "current_story_directives": "",
+        "current_is_new_character": True,
+        "current_character_id": "",
+        "current_character_name": "",
+        "current_character_genre": "",
+        "current_character_description": "",
     }
     
     # Update user

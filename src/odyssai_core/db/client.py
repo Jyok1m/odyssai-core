@@ -202,7 +202,7 @@ class MongoDBClient:
             success = result.modified_count > 0
             if success:
                 logger.info(f"Document updated in {collection_name}")
-            return success
+            return True
         except PyMongoError as e:
             logger.error(f"Error updating document in {collection_name}: {e}")
             return False

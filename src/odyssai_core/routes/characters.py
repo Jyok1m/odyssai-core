@@ -183,6 +183,7 @@ def check_character():
         error_response, status_code = create_error_response(
             language, "internal_error", 500
         )
+
         error_response["error_details"] = str(e)
         error_response["error_type"] = e.__class__.__name__
         return jsonify(error_response), status_code

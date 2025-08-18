@@ -13,4 +13,7 @@ PY
 # Lancer avec la conf unique
 exec conda run --no-capture-output -n odyssai gunicorn \
   -c gunicorn.conf.py \
+  --worker-class gthread \
+  --threads ${WEB_THREADS:-4} \
+  --timeout ${WEB_TIMEOUT:-180} \
   src.odyssai_core.app:app

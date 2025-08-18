@@ -10,6 +10,7 @@ from odyssai_core.utils.i18n import (
 from bcrypt import hashpw, checkpw, gensalt
 from uuid import uuid4
 import datetime
+import re
 
 # Create the system blueprint
 users_bp = Blueprint("users", __name__)
@@ -77,8 +78,9 @@ def create_user():
         )
         return jsonify(error_response), status_code
     
-    # Check if user already exists
-    existing_user = client.find_one("users", {"username": data["username"]})
+    # Check if user already exists (case-insensitive regex)
+    username_regex = re.compile(f"^{re.escape(data['username'])}$", re.IGNORECASE)
+    existing_user = client.find_one("users", {"username": {"$regex": username_regex}})
     if existing_user:
         error_response, status_code = create_error_response(
             language, "user_already_exists", 409
@@ -140,8 +142,9 @@ def login_user():
         )
         return jsonify(error_response), status_code
     
-    # Find user by username
-    user = client.find_one("users", {"username": data["username"]})
+    # Find user by username (case-insensitive regex)
+    username_regex = re.compile(f"^{re.escape(data['username'])}$", re.IGNORECASE)
+    user = client.find_one("users", {"username": {"$regex": username_regex}})
     if not user:
         error_response, status_code = create_error_response(
             language, "invalid_credentials", 401
@@ -157,7 +160,7 @@ def login_user():
     
     # Update last login and language preference
     client.update_one("users", 
-                     {"username": data["username"]}, 
+                     {"username": {"$regex": username_regex}}, 
                      {"last_login": datetime.datetime.utcnow()})
     
     # Remove password from response
@@ -180,8 +183,9 @@ def check_username_exists():
     if not username:
         return jsonify({"exists": False}), 404
     
-    # Check if user exists
-    existing_user = client.find_one("users", {"username": username})
+    # Check if user exists (case-insensitive regex)
+    username_regex = re.compile(f"^{re.escape(username)}$", re.IGNORECASE)
+    existing_user = client.find_one("users", {"username": {"$regex": username_regex}})
     
     return jsonify({"exists": bool(existing_user)}), 200
 

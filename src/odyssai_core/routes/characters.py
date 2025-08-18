@@ -16,7 +16,7 @@ class CreateCharacterRequestSchema(Dict):
     character_name: str
     character_gender: str
     character_description: str
-
+#
 
 @characters_bp.route("/", methods=["POST"])
 def create_character():

@@ -244,14 +244,6 @@ def add_data():
     if "character_description" in data and data["character_description"]:
         update_data["current_character_description"] = data["character_description"]
     
-    # At least one field should be provided
-    if not update_data:
-        error_response, status_code = create_error_response(
-            language, "missing_game_context", 400
-        )
-        return jsonify(error_response), status_code
-    
-    print(data["user_uuid"], update_data)
     # Update user
     success = client.update_one("users", {"uuid": data["user_uuid"]}, update_data)
     if not success:

@@ -151,21 +151,20 @@ def login_user():
     # Check password
     if not checkpw(data["password"].encode(), user["password"].encode()):
         error_response, status_code = create_error_response(
-            language, "invalid_credentials", 401
+            user["language"], "invalid_credentials", 401
         )
         return jsonify(error_response), status_code
     
     # Update last login and language preference
     client.update_one("users", 
                      {"username": data["username"]}, 
-                     {"last_login": datetime.datetime.utcnow(), "language": language})
+                     {"last_login": datetime.datetime.utcnow()})
     
     # Remove password from response
     user.pop("password", None)
-    user["language"] = language  # Include language in response
     
     success_response, status_code = create_success_response(
-        language, 
+        user["language"], 
         "login_successful", 
         {"user": user}, 
         200

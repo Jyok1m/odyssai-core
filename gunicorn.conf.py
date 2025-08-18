@@ -1,29 +1,32 @@
 import os
+import multiprocessing
 
-# Bind to all interfaces and use port from environment or default to 9000
-# Fly.io sets PORT environment variable, fallback to BACKEND_PORT or 9000
-port = os.environ.get('PORT', os.environ.get('BACKEND_PORT', 9000))
-bind = f"0.0.0.0:{port}"
+# Bind (Fly.io/Heroku-like)
+PORT = os.getenv("PORT") or os.getenv("BACKEND_PORT") or "9000"
+bind = f"0.0.0.0:{PORT}"
 
-# Number of worker processes
-workers = 2
+# ASGI vs WSGI -> ODYSSAI_APP_TYPE=ASGI|WSGI
+APP_TYPE = os.getenv("ODYSSAI_APP_TYPE", "ASGI").upper()
+worker_class = "uvicorn.workers.UvicornWorker" if APP_TYPE == "ASGI" else "gthread"
 
-# Worker class
-worker_class = "sync"
+# Concurrence
+CPU = multiprocessing.cpu_count() or 2
+workers = int(os.getenv("WEB_CONCURRENCY", max(2, CPU // 2)))
+threads = int(os.getenv("WEB_THREADS", "4")) if worker_class == "gthread" else 1  # threads ignorés en ASGI
 
-# Timeout for requests
-timeout = 30
+# Timeouts
+timeout = int(os.getenv("WEB_TIMEOUT", "180"))
+graceful_timeout = 30
+keepalive = int(os.getenv("WEB_KEEPALIVE", "10"))
 
-# Keep alive
-keepalive = 2
-
-# Logging
+# Logs
 accesslog = "-"
 errorlog = "-"
-loglevel = "info"
+loglevel = os.getenv("LOG_LEVEL", "info")
 
-# Process naming
+# Divers prod
 proc_name = "odyssai"
-
-# Preload application
-preload_app = True
+preload_app = os.getenv("PRELOAD_APP", "true").lower() == "true"
+max_requests = int(os.getenv("MAX_REQUESTS", "1000"))
+max_requests_jitter = int(os.getenv("MAX_REQUESTS_JITTER", "100"))
+worker_tmp_dir = "/dev/shm"

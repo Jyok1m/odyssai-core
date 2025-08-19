@@ -1148,7 +1148,7 @@ def get_lore_context(state: StateSchema) -> StateSchema:
     retriever = db_collection.as_retriever(
         search_type="mmr",
         search_kwargs={
-            "k": 10,
+            "k": 25,
             "lambda_mult": 0.2,  # 0 - 1
             "where": {"world_id": state.get("world_id", "")},
         },
@@ -1314,7 +1314,7 @@ def get_event_context(state: StateSchema) -> StateSchema:
 
     retriever = collection.as_retriever(
         search_type="mmr",
-        search_kwargs={"k": 10},
+        search_kwargs={"k": 25},
     )
     results = retriever.invoke(get_multilingual_rag_query(state, "story_events"))
 

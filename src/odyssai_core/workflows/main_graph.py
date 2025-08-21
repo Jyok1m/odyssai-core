@@ -576,6 +576,7 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
                     "dominant_species": "string" (e.g. 'humans', 'elves', 'androids' etc.),
                     "magic_presence": True or False (if magic exists in the world),
                     "governance": "string" (e.g. 'monarchy', 'anarchy', 'federation' etc.)
+                    "user_language": "{{user_language}}"
                 }
             }
 
@@ -608,6 +609,7 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
                     "dominant_species": "string" (ex. 'humans', 'elves', 'androids' etc.),
                     "magic_presence": True ou False (si la magie existe dans le monde),
                     "governance": "string" (ex. 'monarchy', 'anarchy', 'federation' etc.)
+                    "user_language": "{{user_language}}"
                 }
             }
 
@@ -927,6 +929,7 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
             "story_directives",
             "No specific directives provided. Generate a general narrative.",
         ),
+        user_language=state.get("user_language", "en")
     )
     truncated_prompt = truncate_structured_prompt(formatted_prompt)
     llm_model = ChatOpenAI(
@@ -1107,7 +1110,7 @@ def get_world_context(state: StateSchema) -> StateSchema:
 
 
 @traceable(run_type="chain", name="Get all worlds list")
-def get_all_worlds() -> list[dict]:
+def get_all_worlds(lang) -> list[dict]:
     db_collection = Chroma(
         client=CHROMA_DB_CLIENT,
         embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
@@ -1115,8 +1118,8 @@ def get_all_worlds() -> list[dict]:
     )
     
     # Get all worlds from the database
-    result = db_collection.get()
-    
+    result = db_collection.get(where={"user_language": lang})
+
     if not result["ids"]:
         return []
     

@@ -20,9 +20,15 @@ class CreateWorldRequestSchema(Dict):
 @worlds_bp.route("/", methods=["GET"])
 def list_worlds():
     """Get a list of all created worlds"""
+
+    # Get language from query parameters (default to 'en')
+    language = request.args.get('lang', 'en')
+    if language not in ['fr', 'en']:
+        language = 'en'
+
     try:
-        worlds_list = main_graph.get_all_worlds()
-        
+        worlds_list = main_graph.get_all_worlds(language)
+
         return jsonify({
             "success": True,
             "worlds": worlds_list,

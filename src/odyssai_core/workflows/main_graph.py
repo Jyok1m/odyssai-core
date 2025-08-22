@@ -31,7 +31,7 @@ from odyssai_core.constants.llm_models import LLM_NAME, EMBEDDING_MODEL
 CHROMA_DB_CLIENT = chromadb.CloudClient(CHROMA_TENANT, CHROMA_DATABASE, CHROMA_API_KEY)
 TERMINAL_WIDTH = shutil.get_terminal_size((80, 20)).columns
 VOICE_MODE_ENABLED = False
-MAIN_TEMP = 1.1
+MAIN_TEMP = 1
 
 # ------------------------------------------------------------------ #
 #                                SCHEMA                              #
@@ -1366,7 +1366,7 @@ def llm_generate_world_summary(state: StateSchema) -> StateSchema:
 
     llm_model = ChatOpenAI(
         model=LLM_NAME,
-        temperature=0.3,
+        temperature=MAIN_TEMP,
         streaming=False,
         max_retries=2,
     )
@@ -1398,7 +1398,7 @@ def llm_generate_immediate_event_summary(state: StateSchema) -> StateSchema:
 
     llm_model = ChatOpenAI(
         model=LLM_NAME,
-        temperature=0.3,
+        temperature=MAIN_TEMP,
         streaming=False,
         max_retries=2,
     )

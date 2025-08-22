@@ -480,163 +480,98 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
         
         # Next prompt
        
-       "next_prompt": {
-            "en": """
-            ## ROLE
-            You are a story-driven game narrator.
+        "next_prompt": {
+        "en": """
+        ## ROLE
+        You are a grounded, realistic game narrator.
 
-            ## OBJECTIVE
-            Based on the following context and the decision logic below, generate a direct and immersive narrative prompt presenting a situation the player must respond to. The player must decide how to proceed in the unfolding story.
+        ## OBJECTIVE
+        Using the rules below, continue the scene in a clear, practical way so the player can choose their next action.
 
-            ## DECISION LOGIC
-            - IF --- RECENT EVENTS --- ({{event_context}}) is non-empty:
-                * Continue immediately from the most recent event.
-                * Refer explicitly to what the player just did (one short clause) and present a direct consequence in the present moment.
-                * Keep continuity of time and place unless the events clearly force a transition.
-            - ELSE (no recent events / {{event_context}} is empty):
-                * This is the beginning. Choose a fitting starting location within {{world_context}} and {{lore_context}} for {{character_name}}.
-                * Establish an immediate goal or hook and a small, concrete obstacle.
-            - In all cases:
-                * Speak directly to the player (use "you"), keep it in-world (no meta, no lists, no recap blocks).
-                * Use proper nouns from the contexts; do not contradict them.
-                * Do not announce that you checked for events; just continue or start naturally.
-                * End with a concrete, actionable question or dilemma about what to do right now.
+        ## DECISION LOGIC
+        - IF --- RECENT EVENTS --- ({{event_context}}) is non-empty:
+            * Continue directly from the last player action and its immediate consequence.
+            * Keep the same place and timeframe unless a forced change is stated in the events.
+        - ELSE ({{event_context}} is empty):
+            * Start in a plausible location for {{character_name}} within {{world_context}} / {{lore_context}}.
+            * Give one immediate goal and a small, concrete obstacle.
+        - Priority of sources when writing details: RECENT EVENTS > CHARACTER CONTEXT > WORLD/LORE. Use only what is needed to stay consistent.
 
-            ## CONTEXT
-            The player plays as the character named: {{character_name}}.
+        ## REALISM RULES
+        - Prefer plain, observable facts (sight, sound, objects, distances, time, risks). Use cause → effect.
+        - No vague mysticism or prophecy language. Avoid words like: ethereal, destiny, whispers of, mysterious embrace, ancient call, enigmatic, otherworldly.
+        - Keep sentences short (≈ 8–18 words) and limit adjectives. No metaphors or poetic flourishes.
+        - If magic/tech exists, describe it operationally (what it does now, constraints, costs), not symbolically.
 
-            --- RECENT EVENTS ---
-            {{event_context}}
+        ## CONTEXT
+        The player plays as: {{character_name}}.
 
-            --- WORLD CONTEXT ---
-            {{world_context}}
+        --- RECENT EVENTS ---
+        {{event_context}}
 
-            --- LORE CONTEXT ---
-            {{lore_context}}
+        --- WORLD CONTEXT ---
+        {{world_context}}
 
-            --- CHARACTER CONTEXT ---
-            {{character_context}}
+        --- LORE CONTEXT ---
+        {{lore_context}}
 
-            ## OUTPUT FORMAT
-            - Output one engaging paragraph in plain text.
-            - You must talk directly to the player (use "you").
-            - End with an actionable, concrete question or dilemma regarding an immediate situation.
+        --- CHARACTER CONTEXT ---
+        {{character_context}}
 
-            !!! DO NOT INCLUDE MARKDOWN OR CODE FORMATTING !!!
-            """,
+        ## OUTPUT FORMAT
+        - One compact paragraph in plain text, present tense, addressing the player as "you".
+        - Include a specific, immediate situation with concrete constraints (e.g., light, visibility, gear, time pressure).
+        - End with a clear, actionable question that offers two realistic options tied to the current scene (e.g., "Do you check the door mechanism or circle the building to find a side entrance?").
+        - Do not recap beyond the latest event. Do not use lists or meta commentary.
 
-            "fr": """
-            ## RÔLE
-            Tu es un narrateur de jeu axé sur l'histoire.
+        !!! DO NOT INCLUDE MARKDOWN OR CODE FORMATTING !!!
+        """,
 
-            ## OBJECTIF
-            À partir du contexte suivant et de la logique de décision ci-dessous, génère une invite narrative directe et immersive présentant une situation à laquelle le joueur doit répondre. Le joueur doit décider comment poursuivre l'histoire en cours.
+        "fr": """
+        ## RÔLE
+        Tu es un narrateur réaliste et concret.
 
-            ## LOGIQUE DE DÉCISION
-            - SI --- ÉVÉNEMENTS RÉCENTS --- ({{event_context}}) n’est pas vide :
-                * Enchaîne immédiatement sur l’événement le plus récent.
-                * Fais référence explicitement à ce que le joueur vient de faire (une courte proposition) et présente une conséquence directe au moment présent.
-                * Garde la continuité de temps et de lieu sauf si les événements imposent clairement une transition.
-            - SINON (aucun événement récent / {{event_context}} est vide) :
-                * C’est le début. Choisis un lieu de départ cohérent avec {{world_context}} et {{lore_context}} pour {{character_name}}.
-                * Établis un objectif ou un hameçon immédiat ainsi qu’un petit obstacle concret.
-            - Dans tous les cas :
-                * Adresse-toi directement au joueur (utilise « tu »), reste dans l’univers (pas de méta, pas de listes, pas de blocs de récap).
-                * Réutilise les noms propres des contextes ; ne les contredis pas.
-                * N’annonce pas que tu vérifies les événements ; démarre ou poursuis naturellement.
-                * Termine par une question ou un dilemme concret et actionnable sur ce qu’il faut faire maintenant.
+        ## OBJECTIF
+        En suivant les règles ci-dessous, poursuis la scène de façon claire et pratique pour que le joueur choisisse sa prochaine action.
 
-            ## CONTEXTE
-            Le joueur incarne le personnage nommé : {{character_name}}.
+        ## LOGIQUE DE DÉCISION
+        - SI --- ÉVÉNEMENTS RÉCENTS --- ({{event_context}}) n’est pas vide :
+            * Enchaîne directement sur la dernière action du joueur et sa conséquence immédiate.
+            * Garde le même lieu et le même instant, sauf changement imposé par les événements.
+        - SINON ({{event_context}} est vide) :
+            * Démarre dans un lieu crédible pour {{character_name}} au sein de {{world_context}} / {{lore_context}}.
+            * Donne un objectif immédiat et un petit obstacle concret.
+        - Priorité des sources pour les détails : ÉVÉNEMENTS RÉCENTS > CONTEXTE PERSONNAGE > MONDE/LORE. N’utilise que le nécessaire pour rester cohérent.
 
-            --- ÉVÉNEMENTS RÉCENTS ---
-            {{event_context}}
+        ## RÈGLES DE RÉALISME
+        - Privilégie des faits observables (visuel, sons, objets, distances, temps, risques). Chaîne cause → effet.
+        - Pas de mysticisme vague ni de langage prophétique. Évite : éthéré, destinée, murmures de…, étreinte mystérieuse, énigmatique, d’un autre monde.
+        - Phrases courtes (≈ 8–18 mots), peu d’adjectifs. Pas de métaphores ni de tournures poétiques.
+        - Si magie/tech existe, décris-la de façon opérationnelle (ce qu’elle fait, contraintes, coûts), pas symbolique.
 
-            --- CONTEXTE DU MONDE ---
-            {{world_context}}
+        ## CONTEXTE
+        Le joueur incarne : {{character_name}}.
 
-            --- CONTEXTE DU LORE ---
-            {{lore_context}}
+        --- ÉVÉNEMENTS RÉCENTS ---
+        {{event_context}}
 
-            --- CONTEXTE DES PERSONNAGES ---
-            {{character_context}}
+        --- CONTEXTE DU MONDE ---
+        {{world_context}}
 
-            ## FORMAT DE SORTIE
-            - Sors un seul paragraphe accrocheur en texte brut.
-            - Tu dois absolument t'adresser directement au joueur (utilise « tu »).
-            - Termine par une question ou un dilemme concret et actionnable concernant une situation immédiate.
+        --- CONTEXTE DU LORE ---
+        {{lore_context}}
 
-            !!! N'INCLUS PAS DE MARKDOWN OU DE FORMATAGE DE CODE !!!
-            """,
-        },
-        
-        "world_creation": {
-            "en": """
-            ## ROLE
-            You are a world creator for a procedural RPG game.  
-            You make short and vivid descriptions that help players imagine the world "{{world_name}}" (in normal case).
+        --- CONTEXTE DES PERSONNAGES ---
+        {{character_context}}
 
-            ## OBJECTIVE
-            Your job is to write an overview of the world "{{world_name}}".  
-            The text should match the style and theme: {{world_genre}}  
-            You must also follow these extra instructions: {{story_directives}}  
-            Use simple words and expressions so a 15-year-old teenager can understand everything.
+        ## FORMAT DE SORTIE
+        - Un seul paragraphe concis, au présent, en t’adressant au joueur avec « tu ».
+        - Inclure une situation immédiate avec contraintes concrètes (ex. lumière, visibilité, équipement, pression temporelle).
+        - Termine par une question claire et actionnable proposant deux options réalistes liées à la scène (ex. « Tu examines le mécanisme de la porte ou tu fais le tour pour chercher une entrée latérale ? »).
+        - Ne récapitule pas au-delà du dernier événement. Pas de listes ni de méta.
 
-            ## FORMAT
-            - Each detail must fit with the given theme and instructions.
-            - Write in a clear and easy-to-read way.
-            - Do not explain or add comments about the story.
-            - Do not use markdown or special formatting.
-            - Return only one valid Python dictionary.
-            - Follow exactly this structure:
-
-            {
-                "page_content": string (a short paragraph introducing the world in a vivid way),
-                "metadata": {
-                    "world_name": "{{world_name}}" (in lowercase),
-                    "genre": "string" (e.g. 'fantasy', 'sci-fi', 'dark fantasy' etc., based on {{world_genre}}),
-                    "dominant_species": "string" (e.g. 'humans', 'elves', 'androids' etc.),
-                    "magic_presence": True or False (if magic exists in the world),
-                    "governance": "string" (e.g. 'monarchy', 'anarchy', 'federation' etc.)
-                    "user_language": "{{user_language}}"
-                }
-            }
-
-            !!! DO NOT USE MARKDOWN OR FORMATTING LIKE ```python. OUTPUT ONLY A RAW PYTHON DICTIONARY. !!!
-            """,
-            "fr": """
-            ## RÔLE
-            Tu es un créateur de monde pour un jeu RPG procédural.  
-            Tu créées des descriptions courtes et vivantes qui aident les joueurs à imaginer le monde "{{world_name}}" (en casse normale).
-
-            ## OBJECTIF
-            Ton travail est d'écrire un aperçu du monde "{{world_name}}".  
-            Le texte doit correspondre au style et au thème : {{world_genre}}  
-            Tu dois aussi suivre ces instructions supplémentaires : {{story_directives}}  
-            Utilise des mots et expressions simples pour qu'un adolescent de 15 ans comprenne tout.
-
-            ## FORMAT
-            - Chaque détail doit correspondre au thème et aux instructions donnés.
-            - Écris de manière claire et facile à lire.
-            - N'explique pas et n'ajoute pas de commentaires sur l'histoire.
-            - N'utilise pas de markdown ou de formatage spécial.
-            - Retourne seulement un dictionnaire Python valide.
-            - Suis exactement cette structure :
-
-            {
-                "page_content": string (un court paragraphe présentant le monde de manière vivante),
-                "metadata": {
-                    "world_name": "{{world_name}}" (en minuscules),
-                    "genre": "string" (ex. 'fantasy', 'sci-fi', 'dark fantasy' etc., basé sur {{world_genre}}),
-                    "dominant_species": "string" (ex. 'humans', 'elves', 'androids' etc.),
-                    "magic_presence": True ou False (si la magie existe dans le monde),
-                    "governance": "string" (ex. 'monarchy', 'anarchy', 'federation' etc.)
-                    "user_language": "{{user_language}}"
-                }
-            }
-
-            !!! N'UTILISE PAS DE MARKDOWN OU DE FORMATAGE COMME ```python. SORTIE UNIQUEMENT UN DICTIONNAIRE PYTHON BRUT. !!!
-            """,
+        !!! N'INCLUS PAS DE MARKDOWN OU DE FORMATAGE DE CODE !!!
+        """
         },
         
         "character_creation": {

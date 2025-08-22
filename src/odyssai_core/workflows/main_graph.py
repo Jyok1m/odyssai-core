@@ -31,7 +31,7 @@ from odyssai_core.constants.llm_models import LLM_NAME, EMBEDDING_MODEL
 CHROMA_DB_CLIENT = chromadb.CloudClient(CHROMA_TENANT, CHROMA_DATABASE, CHROMA_API_KEY)
 TERMINAL_WIDTH = shutil.get_terminal_size((80, 20)).columns
 VOICE_MODE_ENABLED = False
-MAIN_TEMP = 0.9
+MAIN_TEMP = 1.1
 
 # ------------------------------------------------------------------ #
 #                                SCHEMA                              #
@@ -212,7 +212,7 @@ def get_multilingual_rag_query(state: StateSchema, query_type: str, **kwargs) ->
         },
         "story_events": {
             "en": "Most recent in-world actions/events for the player. Short factual mentions, no summaries.",
-            "fr": "Événements/Actions les plus récents vécus par le joueur. Mentions factuelles courtes, sans résumé."
+            "fr": "Événements/Actions les plus récents vécus par le joueur. Mentions factuelles courtes, sans résumé.",
         },
         "character_context": {
             "en": f"Information about characters in world {kwargs.get('world_name', 'Unknown World')}",
@@ -417,8 +417,8 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
             """,
         },
         # Immediate event summary
-       "immediate_event_summary": {
-        "en": """
+        "immediate_event_summary": {
+            "en": """
         ## ROLE
         You summarize only what the player just did and what immediately happened next.
 
@@ -447,7 +447,7 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
 
         !!! DO NOT USE MARKDOWN, YAML, OR ANY FORMATTING. OUTPUT ONLY A RAW STRING. !!!
         """,
-        "fr": """
+            "fr": """
         ## RÔLE
         Tu résumes uniquement ce que le joueur vient de faire et ce qui s’est passé juste après.
 
@@ -475,41 +475,50 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
         Si les entrées sont vides ou ambiguës, dis : "Tu es prêt à agir, mais rien ne s’est encore passé."
 
         !!! N’UTILISE PAS DE MARKDOWN, YAML OU DE FORMATAGE. RENDS UNIQUEMENT UNE CHAÎNE BRUTE. !!!
-        """
+        """,
         },
-        
         # Next prompt
-       
         "next_prompt": {
-        "en": """
-        ## ROLE
+        "en": """## ROLE
         You are a grounded, realistic game narrator.
 
         ## OBJECTIVE
         Using the rules below, continue the scene in a clear, practical way so the player can choose their next action.
 
         ## DECISION LOGIC
-        - IF --- RECENT EVENTS --- ({{event_context}}) is non-empty:
-            * The order is from most recent to oldest.
-            * Continue directly from the last player action and its immediate consequence.
-            * Keep the same place and timeframe unless a forced change is stated in the events.
-        
-        - ELSE ({{event_context}} is empty):
-            * Start in a plausible location for {{character_name}} within {{world_context}} / {{lore_context}}.
-            * Give one immediate goal and a small, concrete obstacle.
-        
-        - Priority of sources when writing details: RECENT EVENTS > CHARACTER CONTEXT > WORLD/LORE. Use only what is needed to stay consistent.
+        - IF --- RECENT EVENTS in Descending Order --- is non-empty:
+        * Continue **directly** from the last player action and its immediate consequence.
+        * Keep the same place and timeframe unless a forced change is stated in the events.
+        * The events are: {{event_context}}
+        - ELSE:
+        * Start in a plausible location for {{character_name}} within {{world_context}} / {{lore_context}}.
+        * Give one immediate goal and a small, concrete obstacle.
+        - Priority of sources: RECENT EVENTS > CHARACTER CONTEXT > WORLD/LORE. Use only what is needed.
+
+        ## ACTION RESOLUTION RULE
+        - Treat the last player action as **already performed**.
+        - Place the player **in the resulting location**.
+
+        ## PROGRESSION & ANTI-LOOP RULES
+        - **State mutation every turn:** change at least one concrete element (e.g., door now open/locked, corridor flooded to ankle-deep, light level reduced, NPC moved, heat source cooled).
+        - **Consume or retire affordances:** if an exit/object is used or inspected, mark it as **resolved** and do not offer it again unless circumstances changed (e.g., now powered, now flooded).
+        - **Choice novelty:** do **not** repeat either of the previous turn’s options unless their state changed meaningfully; avoid generic directions ("go left/right", "go deeper").
+        - **Time/hazard pressure:** keep/advance a simple clock (e.g., "flooding 1/4", "air 7→6", "guards 2/3"). Advance at least one step per turn.
+        - **No soft resets:** never reintroduce a corridor fork if we already resolved it; never bounce back to vague exploration.
+
+        ## CHOICE RULE
+        - End with **one** question giving **exactly two** realistic, mutually exclusive actions available **here and now**, each tied to a specific affordance in the current scene.
 
         ## REALISM RULES
         - Prefer plain, observable facts (sight, sound, objects, distances, time, risks). Use cause → effect.
-        - No vague mysticism or prophecy language. Avoid words like: ethereal, destiny, whispers of, mysterious embrace, ancient call, enigmatic, otherworldly.
-        - Keep sentences short (≈ 8–18 words) and limit adjectives. No metaphors or poetic flourishes.
-        - If magic/tech exists, describe it operationally (what it does now, constraints, costs), not symbolically.
+        - Avoid vague mysticism/prophecy language: ethereal, destiny, whispers of, mysterious embrace, ancient call, enigmatic, otherworldly.
+        - Sentences ≈ 8–18 words; limit adjectives; no metaphors.
+        - If magic/tech exists, describe it operationally (what it does now, constraints, costs).
 
         ## CONTEXT
         The player plays as: {{character_name}}.
 
-        --- RECENT EVENTS (from most recent to oldest) ---
+        --- RECENT EVENTS (in Descending Order) ---
         {{event_context}}
 
         --- WORLD CONTEXT ---
@@ -521,44 +530,65 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
         --- CHARACTER CONTEXT ---
         {{character_context}}
 
+        --- SCENE STATE (authoritative; provide if available) ---
+        {{scene_state}}
+        (If empty, derive a minimal state from the latest event: location_id; timeframe; light/visibility; environment; exits[] with id/label/status; goals; resources; hazards/progress_clock; visited[].)
+
         ## OUTPUT FORMAT
         - One compact paragraph in plain text, present tense, addressing the player as "you".
-        - Include a specific, immediate situation with concrete constraints (e.g., light, visibility, gear, time pressure).
-        - End with a clear, actionable question that offers two realistic options tied to the current scene (e.g., "Do you check the door mechanism or circle the building to find a side entrance?").
-        - Do not recap beyond the latest event. Do not use lists or meta commentary.
+        - Include a specific, immediate situation with concrete constraints (light, visibility, footing, noise, time/resource pressure).
+        - End with a clear, actionable question offering two realistic options tied to **present** affordances.
+        - Do not recap beyond the latest event. No lists or meta commentary.
 
         !!! DO NOT INCLUDE MARKDOWN OR CODE FORMATTING !!!
-        """,
 
-        "fr": """
-        ## RÔLE
+        ## EXAMPLES (imitate style; do not copy content)
+        - Example A — Events present; you are already **in the room**; irreversible change applied:
+        You stand in the central chamber. Warm air vents hum and the runes give steady amber light; you see about five meters. The door you used swings shut and latches from the other side; returning that way is no longer possible (flooding 1/4). To your right, a hatch marked with a drain symbol is now unlocked; ahead, an altar panel pulses and throws mild heat. Do you pull the drain hatch to access the wash alcove or inspect the altar panel for a power control?
+
+        - Example B — No events; start with goal, obstacle, and a ticking clock:
+        You reach a service landing under a coral arch. Light flickers and the floor is slick; your boots squeak on wet stone. A beacon marks a maintenance tunnel, but the grate is jammed; the stairwell climbs toward faint airflow (tide 2/5). Your goal is to reach shelter before the next surge. Do you lever the grate with a loose rung to enter the tunnel or climb the stairs to reach the vented platform?
+        """,
+                    "fr": """## RÔLE
         Tu es un narrateur réaliste et concret.
 
         ## OBJECTIF
         En suivant les règles ci-dessous, poursuis la scène de façon claire et pratique pour que le joueur choisisse sa prochaine action.
 
         ## LOGIQUE DE DÉCISION
-        - SI --- ÉVÉNEMENTS RÉCENTS --- ({{event_context}}) n’est pas vide :
-            * L'ordre est plus récent au plus ancien.
-            * Enchaîne directement sur la dernière action du joueur et sa conséquence immédiate.
-            * Garde le même lieu et le même instant, sauf changement imposé par les événements.
-        
-        - SINON ({{event_context}} est vide) :
-            * Démarre dans un lieu crédible pour {{character_name}} au sein de {{world_context}} / {{lore_context}}.
-            * Donne un objectif immédiat et un petit obstacle concret.
-        
-        - Priorité des sources pour les détails : ÉVÉNEMENTS RÉCENTS > CONTEXTE PERSONNAGE > MONDE/LORE. N’utilise que le nécessaire pour rester cohérent.
+        - SI --- ÉVÉNEMENTS RÉCENTS dans l'ordre descendant --- n’est pas vide :
+        * Enchaîne **directement** sur la dernière action du joueur et sa conséquence immédiate.
+        * Garde le même lieu et le même instant, sauf changement imposé par les événements.
+        * Les événements sont : {{event_context}}
+        - SINON :
+        * Démarre dans un lieu crédible pour {{character_name}} au sein de {{world_context}} / {{lore_context}}.
+        * Donne un objectif immédiat et un petit obstacle concret.
+        - Priorité des sources : ÉVÉNEMENTS RÉCENTS > CONTEXTE PERSONNAGE > MONDE/LORE. N’utilise que le nécessaire.
+
+        ## RÈGLE D’ENCHAÎNEMENT
+        - Considère la dernière action du joueur comme **déjà effectuée**.
+        - Place le joueur **dans le lieu résultant**.
+
+        ## PROGRESSION & ANTI-BOUCLE
+        - **Mutation d’état à chaque tour** : modifie au moins un élément concret (porte ouverte/verrouillée, couloir à mi-jambe d’eau, baisse de luminosité, déplacement d’un son/PNJ, source de chaleur qui faiblit).
+        - **Consommation des affordances** : si une issue/objet est utilisé ou inspecté, marque-le **résolu** et ne le repropose pas sauf changement réel (ex. alimenté désormais, désormais inondé).
+        - **Nouveauté des choix** : ne répète **aucune** des deux options du tour précédent, sauf si leur état a **vraiment** changé ; évite les directions génériques (« aller à gauche/droite », « aller plus loin »).
+        - **Pression temps/risque** : maintiens un compteur simple (ex. « inondation 1/4 », « air 7→6 », « patrouille 2/3 ») et fais progresser au moins un cran par tour.
+        - **Pas de reset mou** : ne réintroduis pas une fourche déjà résolue ; ne reviens pas à une exploration vague.
+
+        ## RÈGLE DE CHOIX
+        - Termine par **une** question proposant **exactement deux** actions réalistes, exclusives, faisables **ici et maintenant**, chacune liée à une affordance précise de la scène.
 
         ## RÈGLES DE RÉALISME
-        - Privilégie des faits observables (visuel, sons, objets, distances, temps, risques). Chaîne cause → effet.
-        - Pas de mysticisme vague ni de langage prophétique. Évite : éthéré, destinée, murmures de…, étreinte mystérieuse, énigmatique, d’un autre monde.
-        - Phrases courtes (≈ 8–18 mots), peu d’adjectifs. Pas de métaphores ni de tournures poétiques.
-        - Si magie/tech existe, décris-la de façon opérationnelle (ce qu’elle fait, contraintes, coûts), pas symbolique.
+        - Faits observables (visuel, sons, objets, distances, temps, risques). Chaîne cause → effet.
+        - Évite le mysticisme/texte prophétique : éthéré, destinée, murmures de…, étreinte mystérieuse, énigmatique, d’un autre monde.
+        - Phrases de 8–18 mots ; peu d’adjectifs ; pas de métaphores.
+        - Si magie/tech existe, décris-la de façon opérationnelle (ce qu’elle fait maintenant, contraintes, coûts).
 
         ## CONTEXTE
         Le joueur incarne : {{character_name}}.
 
-        --- ÉVÉNEMENTS RÉCENTS (du plus récent au plus ancien) ---
+        --- ÉVÉNEMENTS RÉCENTS (dans l'ordre descendant) ---
         {{event_context}}
 
         --- CONTEXTE DU MONDE ---
@@ -570,16 +600,26 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
         --- CONTEXTE DES PERSONNAGES ---
         {{character_context}}
 
+        --- ÉTAT DE SCÈNE (prioritaire si fourni) ---
+        {{scene_state}}
+        (S’il est vide, dérive un état minimal depuis le dernier événement : location_id ; instant ; lumière/visibilité ; environnement ; issues[] avec id/libellé/statut ; objectifs ; ressources ; dangers/compteur ; visited[].)
+
         ## FORMAT DE SORTIE
         - Un seul paragraphe concis, au présent, en t’adressant au joueur avec « tu ».
-        - Inclure une situation immédiate avec contraintes concrètes (ex. lumière, visibilité, équipement, pression temporelle).
-        - Termine par une question claire et actionnable proposant deux options réalistes liées à la scène (ex. « Tu examines le mécanisme de la porte ou tu fais le tour pour chercher une entrée latérale ? »).
+        - Inclure une situation immédiate avec contraintes concrètes (lumière, visibilité, appuis, bruit, pression temps/ressources).
+        - Terminer par une question claire offrant deux options réalistes liées aux **affordances présentes**.
         - Ne récapitule pas au-delà du dernier événement. Pas de listes ni de méta.
 
         !!! N'INCLUS PAS DE MARKDOWN OU DE FORMATAGE DE CODE !!!
-        """
+
+        ## EXEMPLES (imiter le style, ne pas copier)
+        - Exemple A — Événements présents ; tu es déjà **dans la chambre** ; changement irréversible :
+        Tu es dans la chambre centrale. L’air chaud vibre et les runes éclairent à cinq mètres. La porte par laquelle tu es venu se referme et se verrouille côté opposé : retour impossible (inondation 1/4). À droite, une trappe avec symbole d’évacuation est désormais déverrouillée ; en face, un panneau d’autel pulse une chaleur régulière. Tu tires la trappe pour accéder à l’alcôve d’eau ou tu inspectes le panneau pour trouver un contrôle d’alimentation ?
+
+        - Exemple B — Aucun événement ; but, obstacle et horloge :
+        Tu atteins un palier de service sous une arche de corail. La lumière saute et le sol glisse ; tes semelles crissent sur la pierre mouillée. Un balisage indique un tunnel technique mais la grille est coincée ; l’escalier monte vers un souffle d’air (marée 2/5). Ton but est d’atteindre un abri avant la prochaine vague. Tu fais levier avec un barreau pour ouvrir la grille ou tu montes l’escalier vers la plateforme ventilée ?
+        """,
         },
-        
         "character_creation": {
             "en": """
             ## ROLE
@@ -725,6 +765,7 @@ def play_and_type(cue: str, width: int = 80):
 #                             OTHER UTILS                            #
 # ------------------------------------------------------------------ #
 
+
 def make_retriever(db_collection, where: dict[str, str]):
     mode = random.choices(["focused", "exploratory"], weights=[0.7, 0.3])[0]
 
@@ -741,7 +782,7 @@ def make_retriever(db_collection, where: dict[str, str]):
         search_type="mmr",
         search_kwargs={
             "k": k,
-            "fetch_k": k * 4, 
+            "fetch_k": k * 4,
             "lambda_mult": lambda_mult,
             "where": where,
         },
@@ -1346,10 +1387,12 @@ def get_event_context(state: StateSchema) -> StateSchema:
     docs = retriever.invoke(query) or []
 
     # Tri par récence
-    docs_sorted = sorted(docs, key=lambda d: d.metadata.get("timestamp", ""), reverse=True)
+    docs_sorted = sorted(
+        docs, key=lambda d: d.metadata.get("timestamp", ""), reverse=False
+    )
 
     # Limite pour éviter d'inonder le contexte
-    max_events = 10
+    max_events = 20
     final_docs = docs_sorted[:max_events]
 
     # Formatage identique à avant
@@ -1358,9 +1401,9 @@ def get_event_context(state: StateSchema) -> StateSchema:
         text = (d.page_content or "").strip()
         src = str(d.metadata.get("source", "")).lower()
         if src == "ai":
-            text = f"\nQuestion/AI: {text}\n"
+            text = f"\nAI / IA: {text}\n"
         else:
-            text = f"\nResponse/Player: {text}\n"
+            text = f"\nPlayer / Joueur: {text}\n"
         lines.append(text)
 
     state["event_context"] = "\n".join(lines)

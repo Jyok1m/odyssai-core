@@ -31,7 +31,7 @@ from odyssai_core.constants.llm_models import LLM_NAME, EMBEDDING_MODEL
 CHROMA_DB_CLIENT = chromadb.CloudClient(CHROMA_TENANT, CHROMA_DATABASE, CHROMA_API_KEY)
 TERMINAL_WIDTH = shutil.get_terminal_size((80, 20)).columns
 VOICE_MODE_ENABLED = False
-MAIN_TEMP = 1
+MAIN_TEMP = 0.7
 
 # ------------------------------------------------------------------ #
 #                                SCHEMA                              #

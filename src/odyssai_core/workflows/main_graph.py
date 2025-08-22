@@ -490,11 +490,14 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
 
         ## DECISION LOGIC
         - IF --- RECENT EVENTS --- ({{event_context}}) is non-empty:
+            * The order is from most recent to oldest.
             * Continue directly from the last player action and its immediate consequence.
             * Keep the same place and timeframe unless a forced change is stated in the events.
+        
         - ELSE ({{event_context}} is empty):
             * Start in a plausible location for {{character_name}} within {{world_context}} / {{lore_context}}.
             * Give one immediate goal and a small, concrete obstacle.
+        
         - Priority of sources when writing details: RECENT EVENTS > CHARACTER CONTEXT > WORLD/LORE. Use only what is needed to stay consistent.
 
         ## REALISM RULES
@@ -506,7 +509,7 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
         ## CONTEXT
         The player plays as: {{character_name}}.
 
-        --- RECENT EVENTS ---
+        --- RECENT EVENTS (from most recent to oldest) ---
         {{event_context}}
 
         --- WORLD CONTEXT ---
@@ -536,11 +539,14 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
 
         ## LOGIQUE DE DÉCISION
         - SI --- ÉVÉNEMENTS RÉCENTS --- ({{event_context}}) n’est pas vide :
+            * L'ordre est plus récent au plus ancien.
             * Enchaîne directement sur la dernière action du joueur et sa conséquence immédiate.
             * Garde le même lieu et le même instant, sauf changement imposé par les événements.
+        
         - SINON ({{event_context}} est vide) :
             * Démarre dans un lieu crédible pour {{character_name}} au sein de {{world_context}} / {{lore_context}}.
             * Donne un objectif immédiat et un petit obstacle concret.
+        
         - Priorité des sources pour les détails : ÉVÉNEMENTS RÉCENTS > CONTEXTE PERSONNAGE > MONDE/LORE. N’utilise que le nécessaire pour rester cohérent.
 
         ## RÈGLES DE RÉALISME
@@ -552,7 +558,7 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
         ## CONTEXTE
         Le joueur incarne : {{character_name}}.
 
-        --- ÉVÉNEMENTS RÉCENTS ---
+        --- ÉVÉNEMENTS RÉCENTS (du plus récent au plus ancien) ---
         {{event_context}}
 
         --- CONTEXTE DU MONDE ---
@@ -1342,23 +1348,22 @@ def get_event_context(state: StateSchema) -> StateSchema:
     # Tri par récence
     docs_sorted = sorted(docs, key=lambda d: d.metadata.get("timestamp", ""), reverse=True)
 
-    # Cap dur pour éviter d’inonder le contexte downstream (<= 10 évènements)
+    # Limite pour éviter d'inonder le contexte
     max_events = 10
     final_docs = docs_sorted[:max_events]
 
-    # Concaténation + suffixe si source == AI
+    # Formatage identique à avant
     lines = []
     for d in final_docs:
         text = (d.page_content or "").strip()
         src = str(d.metadata.get("source", "")).lower()
         if src == "ai":
-            text = f"\nQuestion/AI: {text}"
+            text = f"\nQuestion/AI: {text}\n"
         else:
-            text = f"\nResponse/Player: {text}"
+            text = f"\nResponse/Player: {text}\n"
         lines.append(text)
 
     state["event_context"] = "\n".join(lines)
-
     return state
 
 

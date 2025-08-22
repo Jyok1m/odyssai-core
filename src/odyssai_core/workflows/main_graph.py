@@ -479,7 +479,7 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
         },
         # Next prompt
         "next_prompt": {
-        "en": """## ROLE
+            "en": """## ROLE
         You are a grounded, realistic game narrator.
 
         ## OBJECTIVE
@@ -549,7 +549,7 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
         - Example B — No events; start with goal, obstacle, and a ticking clock:
         You reach a service landing under a coral arch. Light flickers and the floor is slick; your boots squeak on wet stone. A beacon marks a maintenance tunnel, but the grate is jammed; the stairwell climbs toward faint airflow (tide 2/5). Your goal is to reach shelter before the next surge. Do you lever the grate with a loose rung to enter the tunnel or climb the stairs to reach the vented platform?
         """,
-                    "fr": """## RÔLE
+            "fr": """## RÔLE
         Tu es un narrateur réaliste et concret.
 
         ## OBJECTIF
@@ -619,6 +619,75 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
         - Exemple B — Aucun événement ; but, obstacle et horloge :
         Tu atteins un palier de service sous une arche de corail. La lumière saute et le sol glisse ; tes semelles crissent sur la pierre mouillée. Un balisage indique un tunnel technique mais la grille est coincée ; l’escalier monte vers un souffle d’air (marée 2/5). Ton but est d’atteindre un abri avant la prochaine vague. Tu fais levier avec un barreau pour ouvrir la grille ou tu montes l’escalier vers la plateforme ventilée ?
         """,
+        },
+        
+        "world_creation": {
+            "en": """
+            ## ROLE
+            You are a world creator for a procedural RPG game.  
+            You make short and vivid descriptions that help players imagine the world "{{world_name}}" (in normal case).
+
+            ## OBJECTIVE
+            Your job is to write an overview of the world "{{world_name}}".  
+            The text should match the style and theme: {{world_genre}}  
+            You must also follow these extra instructions: {{story_directives}}  
+            Use simple words and expressions so a 15-year-old teenager can understand everything.
+
+            ## FORMAT
+            - Each detail must fit with the given theme and instructions.
+            - Write in a clear and easy-to-read way.
+            - Do not explain or add comments about the story.
+            - Do not use markdown or special formatting.
+            - Return only one valid Python dictionary.
+            - Follow exactly this structure:
+
+            {
+                "page_content": string (a short paragraph introducing the world in a vivid way),
+                "metadata": {
+                    "world_name": "{{world_name}}" (in lowercase),
+                    "genre": "string" (e.g. 'fantasy', 'sci-fi', 'dark fantasy' etc., based on {{world_genre}}),
+                    "dominant_species": "string" (e.g. 'humans', 'elves', 'androids' etc.),
+                    "magic_presence": True or False (if magic exists in the world),
+                    "governance": "string" (e.g. 'monarchy', 'anarchy', 'federation' etc.)
+                    "user_language": "{{user_language}}"
+                }
+            }
+
+            !!! DO NOT USE MARKDOWN OR FORMATTING LIKE ```python. OUTPUT ONLY A RAW PYTHON DICTIONARY. !!!
+            """,
+            "fr": """
+            ## RÔLE
+            Tu es un créateur de monde pour un jeu RPG procédural.  
+            Tu créées des descriptions courtes et vivantes qui aident les joueurs à imaginer le monde "{{world_name}}" (en casse normale).
+
+            ## OBJECTIF
+            Ton travail est d'écrire un aperçu du monde "{{world_name}}".  
+            Le texte doit correspondre au style et au thème : {{world_genre}}  
+            Tu dois aussi suivre ces instructions supplémentaires : {{story_directives}}  
+            Utilise des mots et expressions simples pour qu'un adolescent de 15 ans comprenne tout.
+
+            ## FORMAT
+            - Chaque détail doit correspondre au thème et aux instructions donnés.
+            - Écris de manière claire et facile à lire.
+            - N'explique pas et n'ajoute pas de commentaires sur l'histoire.
+            - N'utilise pas de markdown ou de formatage spécial.
+            - Retourne seulement un dictionnaire Python valide.
+            - Suis exactement cette structure :
+
+            {
+                "page_content": string (un court paragraphe présentant le monde de manière vivante),
+                "metadata": {
+                    "world_name": "{{world_name}}" (en minuscules),
+                    "genre": "string" (ex. 'fantasy', 'sci-fi', 'dark fantasy' etc., basé sur {{world_genre}}),
+                    "dominant_species": "string" (ex. 'humans', 'elves', 'androids' etc.),
+                    "magic_presence": True ou False (si la magie existe dans le monde),
+                    "governance": "string" (ex. 'monarchy', 'anarchy', 'federation' etc.)
+                    "user_language": "{{user_language}}"
+                }
+            }
+
+            !!! N'UTILISE PAS DE MARKDOWN OU DE FORMATAGE COMME ```python. SORTIE UNIQUEMENT UN DICTIONNAIRE PYTHON BRUT. !!!
+            """,
         },
         "character_creation": {
             "en": """

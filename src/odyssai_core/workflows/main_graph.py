@@ -417,77 +417,70 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
             """,
         },
         # Immediate event summary
-        "immediate_event_summary": {
-            "en": """
-            ## ROLE
-            You are a world narrator for a procedural RPG game.  
-            You tell the story of the world "{{world_name}}" in a simple, clear way.
+       "immediate_event_summary": {
+        "en": """
+        ## ROLE
+        You summarize only what the player just did and what immediately happened next.
 
-            ## OBJECTIVE
-            Write a short and immersive summary of what just happened.  
-            It will be used to summarize players what choices they made.
-            Use simple words and expressions so a 15-year-old teenager can understand everything.
+        ## OBJECTIVE
+        Write a short, direct recap for the player in simple language. Prefer a single paragraph (2–4 sentences, ≤ ~80 words). Use a second short paragraph only if the action and consequence are clearly distinct. Never exceed ~120 words total.
 
-            ## INPUT CONTEXTS
+        ## INPUTS
+        --- EVENT CONTEXT ---
+        {{event_context}}
+        --- PLAYER ACTION ---
+        {{player_answer}}
 
-            --- EVENT CONTEXT ---
-            {{event_context}}
+        ## RULES
+        - Focus strictly on the most recent player action and its immediate outcome.
+        - If speaker labels like "AI:" or "Player:" appear, ignore them and extract the latest action/outcome.
+        - Do not add lore, backstory, motivations, or new facts.
+        - Speak directly to the player using "you".
+        - Keep vocabulary simple and sentences short (max ~20 words).
+        - No lists, quotes, markdown, YAML, or code blocks. No meta commentary.
 
-            --- PLAYER ACTION WITHIN CONTEXT ---
-            {{player_answer}}
+        ## OUTPUT
+        Return a single raw string (one short paragraph; optionally two if needed) that tells:
+        1) What you just did. 2) What happened right after.
 
-            ## STYLE & CONSTRAINTS
-            - Use clear and easy-to-read language for non-native English speakers.
-            - Avoid poetic or overly complicated language.
-            - Keep names and sentences simple.
-            - Tone should be neutral and informative, but still engaging.
-            - You must absolutely talk directly to the player (use "you").
-            - Do not include markdown, YAML, code blocks, or bullet points.
+        If both inputs are empty or unclear, say: "You are ready to act, but nothing has happened yet."
 
-            ## FORMAT
-            Return a **single raw string** of one or two short paragraphs (max ~100 words each) covering:
-            - The current state and setting of the story
-            - The event that just happened
+        !!! DO NOT USE MARKDOWN, YAML, OR ANY FORMATTING. OUTPUT ONLY A RAW STRING. !!!
+        """,
+        "fr": """
+        ## RÔLE
+        Tu résumes uniquement ce que le joueur vient de faire et ce qui s’est passé juste après.
 
-            !!! DO NOT USE MARKDOWN, YAML, OR FORMATTING. OUTPUT ONLY A RAW STRING. !!!
-            """,
-            "fr": """
-            ## RÔLE
-            Tu es un narrateur de monde pour un jeu RPG procédural.  
-            Tu racontes l'histoire du monde "{{world_name}}" de façon simple et claire.
+        ## OBJECTIF
+        Rédige un rappel court et direct pour le joueur, en langage simple. Privilégie un seul paragraphe (2–4 phrases, ≤ ~80 mots). Utilise un deuxième court paragraphe seulement si l’action et la conséquence sont clairement distinctes. Ne dépasse jamais ~120 mots au total.
 
-            ## OBJECTIF
-            Rédige un résumé court et immersif de ce qui vient de se passer.  
-            Il servira à rappeler aux joueurs les choix qu'ils ont faits.
-            Utilise des mots et expressions simples pour qu'un adolescent de 15 ans comprenne tout.
+        ## ENTRÉES
+        --- CONTEXTE DE L’ÉVÉNEMENT ---
+        {{event_context}}
+        --- ACTION DU JOUEUR ---
+        {{player_answer}}
 
-            ## CONTEXTES D'ENTRÉE
+        ## RÈGLES
+        - Concentre-toi strictement sur la dernière action du joueur et sa conséquence immédiate.
+        - Si des libellés comme "AI:" ou "Player:" apparaissent, ignore-les et extrais la dernière action/conséquence.
+        - N’ajoute ni lore, ni contexte, ni faits nouveaux.
+        - Adresse-toi directement au joueur avec "tu".
+        - Vocabulaire simple, phrases courtes (max ~20 mots).
+        - Pas de listes, de citations, de markdown, de YAML, ni de blocs de code. Aucune méta.
 
-            --- CONTEXTE DE L'ÉVÉNEMENT ---
-            {{event_context}}
+        ## SORTIE
+        Retourne une seule chaîne brute (un paragraphe court ; deux au maximum si nécessaire) qui dit :
+        1) Ce que tu viens de faire. 2) Ce qui s’est passé juste après.
 
-            --- ACTION DU JOUEUR DANS LE CONTEXTE ---
-            {{player_answer}}
+        Si les entrées sont vides ou ambiguës, dis : "Tu es prêt à agir, mais rien ne s’est encore passé."
 
-            ## STYLE & CONTRAINTES
-            - Utilise un langage clair et facile à lire pour les non-anglophones.
-            - Évite le langage poétique ou trop compliqué.
-            - Garde les noms et les phrases simples.
-            - Le ton doit être neutre et informatif, mais engageant.
-            - Tu dois absolument t'adresser directement au joueur (utilise "tu").
-            - N'inclus pas de markdown, YAML, blocs de code ou puces.
-
-            ## FORMAT
-            Donne une **seule chaîne brute** d'un ou deux paragraphes courts (max ~100 mots chacun) couvrant :
-            - L'état et le décor actuels de l'histoire
-            - L'événement qui vient de se produire
-
-            !!! N'UTILISE PAS DE MARKDOWN, YAML OU DE FORMATAGE. SORTIE UNIQUEMENT UNE CHAÎNE BRUTE. !!!
-            """,
+        !!! N’UTILISE PAS DE MARKDOWN, YAML OU DE FORMATAGE. RENDS UNIQUEMENT UNE CHAÎNE BRUTE. !!!
+        """
         },
         
         # Next prompt
-        "next_prompt": {
+       
+       "next_prompt": {
             "en": """
             ## ROLE
             You are a story-driven game narrator.

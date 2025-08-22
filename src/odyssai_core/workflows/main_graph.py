@@ -1361,7 +1361,25 @@ def llm_generate_immediate_event_summary(state: StateSchema) -> StateSchema:
         print("\n")
         play_and_type(llm_response, width=TERMINAL_WIDTH)
 
+    # Save in collection
+    character_id = state.get("character_id")
+    collection = Chroma(
+        client=CHROMA_DB_CLIENT,
+        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        collection_name=f"{character_id}_events",
+    )
+
+    doc = Document(
+        page_content=llm_response,
+        metadata={
+            "source": "AI",
+            "timestamp": datetime.utcnow().isoformat(),
+        },
+    )
+
+    collection.add_documents([doc])
     state["immediate_events"] = llm_response
+
     return state
 
 

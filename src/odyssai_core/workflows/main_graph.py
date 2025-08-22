@@ -503,7 +503,6 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
         - **State mutation every turn:** change at least one concrete element (e.g., door now open/locked, corridor flooded to ankle-deep, light level reduced, NPC moved, heat source cooled).
         - **Consume or retire affordances:** if an exit/object is used or inspected, mark it as **resolved** and do not offer it again unless circumstances changed (e.g., now powered, now flooded).
         - **Choice novelty:** do **not** repeat either of the previous turn’s options unless their state changed meaningfully; avoid generic directions ("go left/right", "go deeper").
-        - **Time/hazard pressure:** keep/advance a simple clock (e.g., "flooding 1/4", "air 7→6", "guards 2/3"). Advance at least one step per turn.
         - **No soft resets:** never reintroduce a corridor fork if we already resolved it; never bounce back to vague exploration.
 
         ## CHOICE RULE
@@ -573,7 +572,6 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
         - **Mutation d’état à chaque tour** : modifie au moins un élément concret (porte ouverte/verrouillée, couloir à mi-jambe d’eau, baisse de luminosité, déplacement d’un son/PNJ, source de chaleur qui faiblit).
         - **Consommation des affordances** : si une issue/objet est utilisé ou inspecté, marque-le **résolu** et ne le repropose pas sauf changement réel (ex. alimenté désormais, désormais inondé).
         - **Nouveauté des choix** : ne répète **aucune** des deux options du tour précédent, sauf si leur état a **vraiment** changé ; évite les directions génériques (« aller à gauche/droite », « aller plus loin »).
-        - **Pression temps/risque** : maintiens un compteur simple (ex. « inondation 1/4 », « air 7→6 », « patrouille 2/3 ») et fais progresser au moins un cran par tour.
         - **Pas de reset mou** : ne réintroduis pas une fourche déjà résolue ; ne reviens pas à une exploration vague.
 
         ## RÈGLE DE CHOIX

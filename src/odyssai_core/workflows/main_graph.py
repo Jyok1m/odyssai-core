@@ -95,138 +95,140 @@ class StateSchema(TypedDict):
 #                       INTERNATIONALIZATION UTILS                    #
 # ------------------------------------------------------------------ #
 
+
 def get_user_language(state: StateSchema) -> str:
     """Get user language from state, default to 'en'"""
     return state.get("user_language", "en")
 
+
 def get_i18n_text(state: StateSchema, key: str) -> str:
     """Get internationalized text based on user language"""
     language = get_user_language(state)
-    
+
     # Text mappings for different languages
     texts = {
         # Character details prompts
         "ask_character_gender": {
             "en": "What is your character's gender?",
-            "fr": "Quel est le genre de votre personnage ?"
+            "fr": "Quel est le genre de votre personnage ?",
         },
         "ask_character_description": {
             "en": "What is your character's description?",
-            "fr": "Quelle est la description de votre personnage ?"
+            "fr": "Quelle est la description de votre personnage ?",
         },
         # Generation cues
         "generating_world_data": {
             "en": "I am generating the data for your new world. This may take a few moments, please be patient...",
-            "fr": "Je génère les données pour votre nouveau monde. Cela peut prendre quelques instants, veuillez patienter..."
+            "fr": "Je génère les données pour votre nouveau monde. Cela peut prendre quelques instants, veuillez patienter...",
         },
         "generating_character_data": {
             "en": "I am generating your character data. This may take a few moments, please be patient...",
-            "fr": "Je génère les données de votre personnage. Cela peut prendre quelques instants, veuillez patienter..."
+            "fr": "Je génère les données de votre personnage. Cela peut prendre quelques instants, veuillez patienter...",
         },
         "generating_lore_data": {
             "en": "I am now imagining an additional layer of depth to the lore. This may take a few moments, please be patient...",
-            "fr": "J'imagine maintenant une couche supplémentaire de profondeur pour le lore. Cela peut prendre quelques instants, veuillez patienter..."
+            "fr": "J'imagine maintenant une couche supplémentaire de profondeur pour le lore. Cela peut prendre quelques instants, veuillez patienter...",
         },
         "summarizing_story": {
             "en": "I am now summarizing your story. This may take a few moments, please be patient...",
-            "fr": "Je résume maintenant votre histoire. Cela peut prendre quelques instants, veuillez patienter..."
+            "fr": "Je résume maintenant votre histoire. Cela peut prendre quelques instants, veuillez patienter...",
         },
         # Continue/stop prompt
         "ask_continue": {
             "en": "Do you wish to continue? Respond by typing 'yes' or 'no'.",
-            "fr": "Souhaitez-vous continuer ? Répondez en tapant 'oui' ou 'non'."
+            "fr": "Souhaitez-vous continuer ? Répondez en tapant 'oui' ou 'non'.",
         },
         # Input missing
         "input_missing": {
             "en": "It seems you haven't provided any input. Let's try again.",
-            "fr": "Il semble que vous n'ayez rien saisi. Essayons à nouveau."
+            "fr": "Il semble que vous n'ayez rien saisi. Essayons à nouveau.",
         },
         # Welcome messages
         "welcome": {
             "en": "Welcome to Odyssai. Start by answering a few questions and let's get started! Do you want to create a new world? Respond by typing 'yes' or 'no'.",
-            "fr": "Bienvenue dans Odyssai. Commençons par répondre à quelques questions ! Voulez-vous créer un nouveau monde ? Répondez en tapant 'oui' ou 'non'."
+            "fr": "Bienvenue dans Odyssai. Commençons par répondre à quelques questions ! Voulez-vous créer un nouveau monde ? Répondez en tapant 'oui' ou 'non'.",
         },
-        
         # World creation
         "ask_world_name_create": {
             "en": "What would you like to name your new world?",
-            "fr": "Comment voulez-vous nommer votre nouveau monde ?"
+            "fr": "Comment voulez-vous nommer votre nouveau monde ?",
         },
         "ask_world_name_join": {
             "en": "What's the name of the world you'd like to join?",
-            "fr": "Quel est le nom du monde que vous souhaitez rejoindre ?"
+            "fr": "Quel est le nom du monde que vous souhaitez rejoindre ?",
         },
         "world_exists_error": {
             "en": "This world already exists. Please choose a different name or join the existing world.",
-            "fr": "Ce monde existe déjà. Veuillez choisir un autre nom ou rejoindre le monde existant."
+            "fr": "Ce monde existe déjà. Veuillez choisir un autre nom ou rejoindre le monde existant.",
         },
         "world_not_found": {
             "en": "This world doesn't exist. Would you like to create it?",
-            "fr": "Ce monde n'existe pas. Voulez-vous le créer ?"
+            "fr": "Ce monde n'existe pas. Voulez-vous le créer ?",
         },
-        
         # World details
         "ask_world_genre": {
             "en": "Describe the world's main genre. Give as much detail as you would like.",
-            "fr": "Décrivez le genre principal du monde. Donnez autant de détails que vous le souhaitez."
+            "fr": "Décrivez le genre principal du monde. Donnez autant de détails que vous le souhaitez.",
         },
         "ask_story_directives": {
             "en": "Are there particular themes or narrative threads you'd like to explore? Let your imagination guide the story's soul.",
-            "fr": "Y a-t-il des thèmes ou des fils narratifs particuliers que vous aimeriez explorer ? Laissez votre imagination guider l'âme de l'histoire."
+            "fr": "Y a-t-il des thèmes ou des fils narratifs particuliers que vous aimeriez explorer ? Laissez votre imagination guider l'âme de l'histoire.",
         },
-        
         # Character creation
         "ask_new_character": {
             "en": "Do you want to play as a new character? Respond by typing 'yes' or 'no'.",
-            "fr": "Voulez-vous jouer un nouveau personnage ? Répondez en tapant 'oui' ou 'non'."
+            "fr": "Voulez-vous jouer un nouveau personnage ? Répondez en tapant 'oui' ou 'non'.",
         },
         "ask_character_name_create": {
             "en": "What would you like to name your new character?",
-            "fr": "Comment voulez-vous nommer votre nouveau personnage ?"
+            "fr": "Comment voulez-vous nommer votre nouveau personnage ?",
         },
         "ask_character_name_join": {
             "en": "What's the name of the character you'd like to play?",
-            "fr": "Quel est le nom du personnage que vous souhaitez jouer ?"
+            "fr": "Quel est le nom du personnage que vous souhaitez jouer ?",
         },
-        
         # Errors
         "character_exists_error": {
             "en": "This character already exists in this world. Please choose a different name.",
-            "fr": "Ce personnage existe déjà dans ce monde. Veuillez choisir un autre nom."
+            "fr": "Ce personnage existe déjà dans ce monde. Veuillez choisir un autre nom.",
         },
         "character_not_found": {
             "en": "This character doesn't exist in this world. Would you like to create it?",
-            "fr": "Ce personnage n'existe pas dans ce monde. Voulez-vous le créer ?"
-        }
+            "fr": "Ce personnage n'existe pas dans ce monde. Voulez-vous le créer ?",
+        },
     }
-    
+
     return texts.get(key, {}).get(language, texts.get(key, {}).get("en", ""))
+
 
 def get_multilingual_rag_query(state: StateSchema, query_type: str, **kwargs) -> str:
     """Generate multilingual RAG queries based on user language"""
     language = get_user_language(state)
-    
+
     queries = {
         "lore_search": {
             "en": f"Lore about the world {kwargs.get('world_name', 'Unknown World')}",
-            "fr": f"Histoire et traditions du monde {kwargs.get('world_name', 'Monde Inconnu')}"
+            "fr": f"Histoire et traditions du monde {kwargs.get('world_name', 'Monde Inconnu')}",
         },
         "story_events": {
-            "en": "What has happened so far in the story?",
-            "fr": "Que s'est-il passé jusqu'à présent dans l'histoire ?"
+            "en": "Most recent in-world actions/events for the player. Short factual mentions, no summaries.",
+            "fr": "Événements/Actions les plus récents vécus par le joueur. Mentions factuelles courtes, sans résumé."
         },
         "character_context": {
             "en": f"Information about characters in world {kwargs.get('world_name', 'Unknown World')}",
-            "fr": f"Informations sur les personnages du monde {kwargs.get('world_name', 'Monde Inconnu')}"
-        }
+            "fr": f"Informations sur les personnages du monde {kwargs.get('world_name', 'Monde Inconnu')}",
+        },
     }
-    
-    return queries.get(query_type, {}).get(language, queries.get(query_type, {}).get("en", ""))
+
+    return queries.get(query_type, {}).get(
+        language, queries.get(query_type, {}).get("en", "")
+    )
+
 
 def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) -> str:
     """Generate multilingual LLM prompts based on user language"""
     language = get_user_language(state)
-    
+
     prompts = {
         # Lore generation
         "lore_generation": {
@@ -325,7 +327,7 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
             }
 
             !!! N'UTILISE PAS DE MARKDOWN OU DE FORMATAGE COMME ```python. SORTIE UNIQUEMENT UN DICTIONNAIRE PYTHON BRUT. !!!
-            """
+            """,
         },
         # World summary
         "world_summary": {
@@ -412,7 +414,7 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
             - Les personnages ou développements importants récents
 
             !!! N'UTILISE PAS DE MARKDOWN, YAML OU DE FORMATAGE. SORTIE UNIQUEMENT UNE CHAÎNE BRUTE. !!!
-            """
+            """,
         },
         # Immediate event summary
         "immediate_event_summary": {
@@ -481,8 +483,9 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
             - L'événement qui vient de se produire
 
             !!! N'UTILISE PAS DE MARKDOWN, YAML OU DE FORMATAGE. SORTIE UNIQUEMENT UNE CHAÎNE BRUTE. !!!
-            """
+            """,
         },
+        
         # Next prompt
         "next_prompt": {
             "en": """
@@ -490,12 +493,27 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
             You are a story-driven game narrator.
 
             ## OBJECTIVE
-            Based on the following context, generate a direct and immersive narrative prompt presenting a situation the player must respond to.
-            The player must decide how to proceed in the unfolding story. He should consider his options carefully (for example, the player could make a choice between exploring a dark cave or returning to the safety of the village or the player could attempt to negotiate with a hostile NPC or prepare for a battle.)
+            Based on the following context and the decision logic below, generate a direct and immersive narrative prompt presenting a situation the player must respond to. The player must decide how to proceed in the unfolding story.
+
+            ## DECISION LOGIC
+            - IF --- RECENT EVENTS --- ({{event_context}}) is non-empty:
+                * Continue immediately from the most recent event.
+                * Refer explicitly to what the player just did (one short clause) and present a direct consequence in the present moment.
+                * Keep continuity of time and place unless the events clearly force a transition.
+            - ELSE (no recent events / {{event_context}} is empty):
+                * This is the beginning. Choose a fitting starting location within {{world_context}} and {{lore_context}} for {{character_name}}.
+                * Establish an immediate goal or hook and a small, concrete obstacle.
+            - In all cases:
+                * Speak directly to the player (use "you"), keep it in-world (no meta, no lists, no recap blocks).
+                * Use proper nouns from the contexts; do not contradict them.
+                * Do not announce that you checked for events; just continue or start naturally.
+                * End with a concrete, actionable question or dilemma about what to do right now.
 
             ## CONTEXT
-
             The player plays as the character named: {{character_name}}.
+
+            --- RECENT EVENTS ---
+            {{event_context}}
 
             --- WORLD CONTEXT ---
             {{world_context}}
@@ -506,27 +524,40 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
             --- CHARACTER CONTEXT ---
             {{character_context}}
 
-            --- RECENT EVENTS ---
-            {{event_context}}
-
             ## OUTPUT FORMAT
-            - Output one engaging paragraph in plain text. 
+            - Output one engaging paragraph in plain text.
             - You must talk directly to the player (use "you").
-            - End with an actionnable, concrete question or dilemma regarding an immediate situation.
+            - End with an actionable, concrete question or dilemma regarding an immediate situation.
 
             !!! DO NOT INCLUDE MARKDOWN OR CODE FORMATTING !!!
             """,
+
             "fr": """
             ## RÔLE
             Tu es un narrateur de jeu axé sur l'histoire.
 
             ## OBJECTIF
-            À partir du contexte suivant, génère une invite narrative directe et immersive présentant une situation à laquelle le joueur doit répondre.
-            Le joueur doit décider comment poursuivre l'histoire en cours. Il doit réfléchir soigneusement à ses options (par exemple, il peut choisir d'explorer une grotte sombre ou de retourner à la sécurité du village, ou encore tenter de négocier avec un PNJ hostile ou se préparer à un combat.)
+            À partir du contexte suivant et de la logique de décision ci-dessous, génère une invite narrative directe et immersive présentant une situation à laquelle le joueur doit répondre. Le joueur doit décider comment poursuivre l'histoire en cours.
+
+            ## LOGIQUE DE DÉCISION
+            - SI --- ÉVÉNEMENTS RÉCENTS --- ({{event_context}}) n’est pas vide :
+                * Enchaîne immédiatement sur l’événement le plus récent.
+                * Fais référence explicitement à ce que le joueur vient de faire (une courte proposition) et présente une conséquence directe au moment présent.
+                * Garde la continuité de temps et de lieu sauf si les événements imposent clairement une transition.
+            - SINON (aucun événement récent / {{event_context}} est vide) :
+                * C’est le début. Choisis un lieu de départ cohérent avec {{world_context}} et {{lore_context}} pour {{character_name}}.
+                * Établis un objectif ou un hameçon immédiat ainsi qu’un petit obstacle concret.
+            - Dans tous les cas :
+                * Adresse-toi directement au joueur (utilise « tu »), reste dans l’univers (pas de méta, pas de listes, pas de blocs de récap).
+                * Réutilise les noms propres des contextes ; ne les contredis pas.
+                * N’annonce pas que tu vérifies les événements ; démarre ou poursuis naturellement.
+                * Termine par une question ou un dilemme concret et actionnable sur ce qu’il faut faire maintenant.
 
             ## CONTEXTE
-
             Le joueur incarne le personnage nommé : {{character_name}}.
+
+            --- ÉVÉNEMENTS RÉCENTS ---
+            {{event_context}}
 
             --- CONTEXTE DU MONDE ---
             {{world_context}}
@@ -537,17 +568,15 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
             --- CONTEXTE DES PERSONNAGES ---
             {{character_context}}
 
-            --- ÉVÉNEMENTS RÉCENTS ---
-            {{event_context}}
-
             ## FORMAT DE SORTIE
             - Sors un seul paragraphe accrocheur en texte brut.
-            - Tu dois absolument t'adresser directement au joueur (utilise "tu").
+            - Tu dois absolument t'adresser directement au joueur (utilise « tu »).
             - Termine par une question ou un dilemme concret et actionnable concernant une situation immédiate.
 
             !!! N'INCLUS PAS DE MARKDOWN OU DE FORMATAGE DE CODE !!!
-            """
+            """,
         },
+        
         "world_creation": {
             "en": """
             ## ROLE
@@ -614,7 +643,7 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
             }
 
             !!! N'UTILISE PAS DE MARKDOWN OU DE FORMATAGE COMME ```python. SORTIE UNIQUEMENT UN DICTIONNAIRE PYTHON BRUT. !!!
-            """
+            """,
         },
         
         "character_creation": {
@@ -715,11 +744,14 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
             }
 
             !!! N'UTILISE PAS DE MARKDOWN OU DE FORMATAGE COMME ```python. SORTIE UNIQUEMENT UN DICTIONNAIRE PYTHON BRUT. !!!
-            """
-        }
+            """,
+        },
     }
-    
-    return prompts.get(prompt_type, {}).get(language, prompts.get(prompt_type, {}).get("en", ""))
+
+    return prompts.get(prompt_type, {}).get(
+        language, prompts.get(prompt_type, {}).get("en", "")
+    )
+
 
 # ------------------------------------------------------------------ #
 #                       Audio Utility Functions                      #
@@ -756,6 +788,33 @@ def play_and_type(cue: str, width: int = 80):
 
 
 # ------------------------------------------------------------------ #
+#                             OTHER UTILS                            #
+# ------------------------------------------------------------------ #
+
+def make_retriever(db_collection, where: dict[str, str]):
+    mode = random.choices(["focused", "exploratory"], weights=[0.7, 0.3])[0]
+
+    if mode == "focused":
+        # peu de diversité, peu de docs
+        k = random.choice([6, 8, 10])
+        lambda_mult = 0.1  # proche de la similarité pure
+    else:
+        # plus de diversité, un peu plus de docs
+        k = random.choice([8, 10, 12])
+        lambda_mult = random.choice([0.5, 0.7, 0.9])
+
+    return db_collection.as_retriever(
+        search_type="mmr",
+        search_kwargs={
+            "k": k,
+            "fetch_k": k * 4, 
+            "lambda_mult": lambda_mult,
+            "where": where,
+        },
+    )
+
+
+# ------------------------------------------------------------------ #
 #                  PLAYER INPUT (VOICE OR TEXT) UTILITY              #
 # ------------------------------------------------------------------ #
 
@@ -788,7 +847,7 @@ def get_player_answer(cue: str, force_type: bool = False) -> str:
 def ask_if_new_world(state: StateSchema) -> StateSchema:
     cue = get_i18n_text(state, "welcome")
     response = get_player_answer(cue, force_type=True).lower()
-    
+
     # Handle both languages for positive responses
     positive_responses = ["yes", "y", "oui", "o"]
     state["create_new_world"] = response in positive_responses
@@ -929,7 +988,7 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
             "story_directives",
             "No specific directives provided. Generate a general narrative.",
         ),
-        user_language=state.get("user_language", "en")
+        user_language=state.get("user_language", "en"),
     )
     truncated_prompt = truncate_structured_prompt(formatted_prompt)
     llm_model = ChatOpenAI(
@@ -1116,26 +1175,40 @@ def get_all_worlds(lang) -> list[dict]:
         embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
         collection_name="worlds",
     )
-    
+
     # Get all worlds from the database
     result = db_collection.get(where={"user_language": lang})
 
     if not result["ids"]:
         return []
-    
+
     worlds_list = []
     for i, world_id in enumerate(result["ids"]):
         world_data = {
             "world_id": world_id,
-            "world_name": result["metadatas"][i].get("world_name", "Unknown World") if result["metadatas"] and result["metadatas"][i] else "Unknown World",
-            "world_description": result["documents"][i] if result["documents"] and len(result["documents"]) > i else "No description available",
-            "genre": result["metadatas"][i].get("genre", "Unknown") if result["metadatas"] and result["metadatas"][i] else "Unknown",
-            "dominant_species": result["metadatas"][i].get("dominant_species", "Unknown") if result["metadatas"] and result["metadatas"][i] else "Unknown",
-            "magic_presence": result["metadatas"][i].get("magic_presence", False) if result["metadatas"] and result["metadatas"][i] else False,
-            "governance": result["metadatas"][i].get("governance", "Unknown") if result["metadatas"] and result["metadatas"][i] else "Unknown"
+            "world_name": result["metadatas"][i].get("world_name", "Unknown World")
+            if result["metadatas"] and result["metadatas"][i]
+            else "Unknown World",
+            "world_description": result["documents"][i]
+            if result["documents"] and len(result["documents"]) > i
+            else "No description available",
+            "genre": result["metadatas"][i].get("genre", "Unknown")
+            if result["metadatas"] and result["metadatas"][i]
+            else "Unknown",
+            "dominant_species": result["metadatas"][i].get(
+                "dominant_species", "Unknown"
+            )
+            if result["metadatas"] and result["metadatas"][i]
+            else "Unknown",
+            "magic_presence": result["metadatas"][i].get("magic_presence", False)
+            if result["metadatas"] and result["metadatas"][i]
+            else False,
+            "governance": result["metadatas"][i].get("governance", "Unknown")
+            if result["metadatas"] and result["metadatas"][i]
+            else "Unknown",
         }
         worlds_list.append(world_data)
-    
+
     # Return at most 3 random worlds
     return random.sample(worlds_list, min(3, len(worlds_list)))
 
@@ -1148,16 +1221,11 @@ def get_lore_context(state: StateSchema) -> StateSchema:
         collection_name="lores",
     )
 
-    retriever = db_collection.as_retriever(
-        search_type="mmr",
-        search_kwargs={
-            "k": 25,
-            "lambda_mult": 0.2,  # 0 - 1
-            "where": {"world_id": state.get("world_id", "")},
-        },
-    )
+    retriever = make_retriever(db_collection, {"world_id": state.get("world_id", "")})
 
-    query = get_multilingual_rag_query(state, "lore_search", world_name=state.get('world_name', 'Unknown World'))
+    query = get_multilingual_rag_query(
+        state, "lore_search", world_name=state.get("world_name", "Unknown World")
+    )
     result = retriever.invoke(query)
 
     if len(result) > 0:
@@ -1200,7 +1268,9 @@ def llm_generate_lore_data(state: StateSchema) -> StateSchema:
         world_name=state.get("world_name", "World name not provided."),
         world_context=state.get("world_context", "No world context available yet."),
         lore_context=state.get("lore_context", "No lore context available yet."),
-        character_context=state.get("character_context", "No character context available yet."),
+        character_context=state.get(
+            "character_context", "No character context available yet."
+        ),
         world_id=state.get("world_id", str(uuid4())),
     )
     truncated_prompt = truncate_structured_prompt(formatted_prompt)
@@ -1301,6 +1371,7 @@ def llm_generate_immediate_event_summary(state: StateSchema) -> StateSchema:
     state["immediate_events"] = llm_response
     return state
 
+
 # ------------------------------------------------------------------ #
 #                         GAMEPLAY FUNCTIONS                         #
 # ------------------------------------------------------------------ #
@@ -1309,19 +1380,39 @@ def llm_generate_immediate_event_summary(state: StateSchema) -> StateSchema:
 @traceable(run_type="chain", name="Retrieve past events for player")
 def get_event_context(state: StateSchema) -> StateSchema:
     character_id = state.get("character_id")
+    world_id = state.get("world_id", "")
+
     collection = Chroma(
         client=CHROMA_DB_CLIENT,
         embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
         collection_name=f"{character_id}_events",
     )
 
-    retriever = collection.as_retriever(
-        search_type="mmr",
-        search_kwargs={"k": 25},
-    )
-    results = retriever.invoke(get_multilingual_rag_query(state, "story_events"))
+    retriever = make_retriever(collection, {"world_id": world_id})
 
-    state["event_context"] = "\n".join([doc.page_content for doc in results])
+    query = get_multilingual_rag_query(state, "story_events")
+    docs = retriever.invoke(query) or []
+
+    # Tri par récence
+    docs_sorted = sorted(docs, key=lambda d: d.metadata.get("timestamp", ""), reverse=True)
+
+    # Cap dur pour éviter d’inonder le contexte downstream (<= 10 évènements)
+    max_events = 10
+    final_docs = docs_sorted[:max_events]
+
+    # Concaténation + suffixe si source == AI
+    lines = []
+    for d in final_docs:
+        text = (d.page_content or "").strip()
+        src = str(d.metadata.get("source", "")).lower()
+        if src == "ai":
+            text = f"\nQuestion/AI: {text}"
+        else:
+            text = f"\nResponse/Player: {text}"
+        lines.append(text)
+
+    state["event_context"] = "\n".join(lines)
+
     return state
 
 
@@ -1334,7 +1425,7 @@ def llm_generate_next_prompt(state: StateSchema) -> StateSchema:
         event_context=state.get("event_context", ""),
         lore_context=state.get("lore_context", ""),
         character_context=state.get("character_context", ""),
-        character_name=state.get("character_name", "")
+        character_name=state.get("character_name", ""),
     )
 
     llm_model = ChatOpenAI(model=LLM_NAME, temperature=MAIN_TEMP)

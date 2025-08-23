@@ -238,37 +238,23 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
             You write exciting and mysterious background stories that make the game world "{{world_name}}" feel alive and full of secrets.
 
             ## OBJECTIVE
-            Your job is to write one rich, standalone paragraph of lore about the world "{{world_name}}" (in normal case).  
-            The text should feel like it comes from an old forgotten book, a story told around a campfire, or an important piece of the world's hidden history.  
+            Your job is to write a few rich, standalone paragraphs of lore about the world "{{world_name}}" (in normal case).  
+            The text should feel like it comes from an old forgotten book, a story told around a campfire, or an important summary of the world's history describing its key events and figures.  
             Use simple words and expressions so that a 15-year-old teenager can understand everything.
 
             ## EXISTING CONTEXTS
             Here is information about the world to help guide your story:
 
-            --- WORLD CONTEXT ---
             {{world_context}}
-            ----------------------
-
-            Here is lore that already exists for this world:
-
-            --- EXISTING LORE CONTEXT ---
-            {{lore_context}}
-            -----------------------------
-
-            Here is character information that already exists for this world:
-
-            --- EXISTING CHARACTER CONTEXT ---
-            {{character_context}}
-            -----------------------------
 
             ## FORMAT
-            - Write only one detailed paragraph of lore in normal language.
+            - Write a few rich paragraphs for the lore in normal language.
             - Do not explain the story or add comments about it.
             - Do not use markdown, bullet points, or code formatting.
             - Give the answer as a raw Python dictionary exactly like this:
 
             {
-                "page_content": "string" (a rich lore paragraph that adds to the world's story or history),
+                "page_content": "string" (a a few rich lore paragraphs that add describe the world's story and history),
                 "metadata": {
                     "world_name": "{{world_name}}" (in lowercase),
                     "world_id": "{{world_id}}",
@@ -286,37 +272,23 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
             Tu écris des histoires de fond passionnantes et mystérieuses qui rendent le monde "{{world_name}}" vivant et plein de secrets.
 
             ## OBJECTIF
-            Ton travail est d'écrire un paragraphe autonome et riche de lore sur le monde "{{world_name}}" (en casse normale).  
-            Le texte doit donner l'impression de venir d'un vieux livre oublié, d'une histoire racontée autour d'un feu de camp, ou d'un morceau important de l'histoire cachée du monde.  
+            Ton travail est d'écrire quelques paragraphes riches de lore sur le monde "{{world_name}}" (en casse normale).  
+            Le texte doit donner l'impression de venir d'un vieux livre oublié, d'une histoire racontée autour d'un feu de camp, ou d'un important résumé de l'histoire du monde décrivant ses événements et figures clés.  
             Utilise des mots et expressions simples pour qu'un adolescent de 15 ans comprenne tout.
 
             ## CONTEXTES EXISTANTS
             Voici des informations sur le monde pour guider ton histoire :
 
-            --- CONTEXTE DU MONDE ---
             {{world_context}}
-            -------------------------
-
-            Voici le lore qui existe déjà pour ce monde :
-
-            --- CONTEXTE DU LORE EXISTANT ---
-            {{lore_context}}
-            ---------------------------------
-
-            Voici les informations sur les personnages existants pour ce monde :
-
-            --- CONTEXTE DES PERSONNAGES EXISTANTS ---
-            {{character_context}}
-            -----------------------------------------
 
             ## FORMAT
-            - Écris un seul paragraphe détaillé de lore en langage normal.
+            - Écris quelques paragraphes riches de lore en langage normal.
             - N'explique pas l'histoire et n'ajoute pas de commentaires.
             - N'utilise pas de markdown, de puces ou de formatage de code.
             - Donne la réponse sous forme d'un dictionnaire Python brut exactement comme ceci :
 
             {
-                "page_content": "string" (un paragraphe de lore riche qui ajoute à l'histoire ou au passé du monde),
+                "page_content": "string" (plusieurs paragraphes de lore riches qui résument l'histoire ou le passé du monde),
                 "metadata": {
                     "world_name": "{{world_name}}" (en minuscules),
                     "world_id": "{{world_id}}",
@@ -1315,7 +1287,7 @@ def llm_generate_lore_data(state: StateSchema) -> StateSchema:
     truncated_prompt = truncate_structured_prompt(formatted_prompt)
 
     llm_model = ChatOpenAI(
-        model=LLM_NAME,
+        model=LLM_NAME_THINKING,
         temperature=MAIN_TEMP,
         streaming=False,
         max_retries=2,

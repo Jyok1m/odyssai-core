@@ -57,7 +57,6 @@ def join_game():
         graph.add_node("get_world_context", main_graph.get_world_context)
         graph.add_node("get_lore_context", main_graph.get_lore_context)
         graph.add_node("get_character_context", main_graph.get_character_context)
-        graph.add_node("llm_generate_lore_data", main_graph.llm_generate_lore_data)
         graph.add_node("save_documents_to_chroma", main_graph.save_documents_to_chroma)
         graph.add_node(
             "llm_generate_world_summary", main_graph.llm_generate_world_summary
@@ -71,9 +70,7 @@ def join_game():
         graph.add_edge("check_character_exists", "get_world_context")
         graph.add_edge("get_world_context", "get_lore_context")
         graph.add_edge("get_lore_context", "get_character_context")
-        graph.add_edge("get_character_context", "llm_generate_lore_data")
-        graph.add_edge("llm_generate_lore_data", "save_documents_to_chroma")
-        graph.add_edge("save_documents_to_chroma", "llm_generate_world_summary")
+        graph.add_edge("get_character_context", "llm_generate_world_summary")
         graph.add_edge("llm_generate_world_summary", main_graph.END)
 
         # Compile and execute workflow
@@ -141,11 +138,9 @@ def get_game_prompt():
         graph.add_node(
             "check_character_exists_by_id", main_graph.check_character_exists_by_id
         )
-        graph.add_node("llm_generate_lore_data", main_graph.llm_generate_lore_data)
         graph.add_node("save_documents_to_chroma", main_graph.save_documents_to_chroma)
         graph.add_node("get_world_context", main_graph.get_world_context)
         graph.add_node("get_lore_context", main_graph.get_lore_context)
-        graph.add_node("get_lore_context2", main_graph.get_lore_context)
         graph.add_node("get_character_context", main_graph.get_character_context)
         graph.add_node("get_event_context", main_graph.get_event_context)
         graph.add_node("llm_generate_next_prompt", main_graph.llm_generate_next_prompt)
@@ -158,10 +153,7 @@ def get_game_prompt():
         graph.add_edge("check_character_exists_by_id", "get_world_context")
         graph.add_edge("get_world_context", "get_lore_context")
         graph.add_edge("get_lore_context", "get_character_context")
-        graph.add_edge("get_character_context", "llm_generate_lore_data")
-        graph.add_edge("llm_generate_lore_data", "save_documents_to_chroma")
-        graph.add_edge("save_documents_to_chroma", "get_lore_context2")    
-        graph.add_edge("get_lore_context2", "get_event_context")
+        graph.add_edge("get_character_context", "get_event_context")
         graph.add_edge("get_event_context", "llm_generate_next_prompt")
         graph.add_edge("llm_generate_next_prompt", main_graph.END)
 

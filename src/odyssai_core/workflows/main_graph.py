@@ -1489,7 +1489,7 @@ def llm_generate_next_prompt(state: StateSchema) -> StateSchema:
         character_name=state.get("character_name", ""),
     )
 
-    llm_model = ChatOpenAI(model=LLM_NAME, temperature=MAIN_TEMP)
+    llm_model = ChatOpenAI(model=LLM_NAME_THINKING, temperature=MAIN_TEMP)
     result = llm_model.invoke(truncate_structured_prompt(formatted_prompt)).content
     result = result.strip() if isinstance(result, str) else str(result)
 

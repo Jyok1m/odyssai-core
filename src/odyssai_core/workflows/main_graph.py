@@ -645,7 +645,7 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
                     "world_name": "{{world_name}}" (in lowercase),
                     "genre": "string" (e.g. 'fantasy', 'sci-fi', 'dark fantasy' etc., based on {{world_genre}}),
                     "dominant_species": "string" (e.g. 'humans', 'elves', 'androids' etc.),
-                    "magic_presence": True or False (if magic exists in the world),
+                    "magic_presence": Python Boolean (True or False) (if magic exists in the world),
                     "governance": "string" (e.g. 'monarchy', 'anarchy', 'federation' etc.)
                     "user_language": "{{user_language}}"
                 }
@@ -678,7 +678,7 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
                     "world_name": "{{world_name}}" (en minuscules),
                     "genre": "string" (ex. 'fantasy', 'sci-fi', 'dark fantasy' etc., basé sur {{world_genre}}),
                     "dominant_species": "string" (ex. 'humans', 'elves', 'androids' etc.),
-                    "magic_presence": True ou False (si la magie existe dans le monde),
+                    "magic_presence": Booléen Python (True ou False) (si la magie existe dans le monde),
                     "governance": "string" (ex. 'monarchy', 'anarchy', 'federation' etc.)
                     "user_language": "{{user_language}}"
                 }

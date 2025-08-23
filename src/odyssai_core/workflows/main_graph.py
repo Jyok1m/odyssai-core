@@ -479,7 +479,8 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
         },
         # Next prompt
         "next_prompt": {
-            "en": """## ROLE
+        "en": """
+        ## ROLE
         You are a grounded, realistic game narrator.
 
         ## OBJECTIVE
@@ -488,7 +489,7 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
         ## DECISION LOGIC
         - IF --- RECENT EVENTS in Descending Order --- is non-empty:
         * Continue **directly** from the last player action and its immediate consequence.
-        * Keep the same place and timeframe unless a forced change is stated in the events.
+        * Make the story progress according to the player's actions.
         * The events are: {{event_context}}
         - ELSE:
         * Start in a plausible location for {{character_name}} within {{world_context}} / {{lore_context}}.
@@ -548,7 +549,11 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
         - Example B — No events; start with goal, obstacle, and a ticking clock:
         You reach a service landing under a coral arch. Light flickers and the floor is slick; your boots squeak on wet stone. A beacon marks a maintenance tunnel, but the grate is jammed; the stairwell climbs toward faint airflow (tide 2/5). Your goal is to reach shelter before the next surge. Do you lever the grate with a loose rung to enter the tunnel or climb the stairs to reach the vented platform?
         """,
-            "fr": """## RÔLE
+
+
+
+
+        "fr": """## RÔLE
         Tu es un narrateur réaliste et concret.
 
         ## OBJECTIF
@@ -557,7 +562,7 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
         ## LOGIQUE DE DÉCISION
         - SI --- ÉVÉNEMENTS RÉCENTS dans l'ordre descendant --- n’est pas vide :
         * Enchaîne **directement** sur la dernière action du joueur et sa conséquence immédiate.
-        * Garde le même lieu et le même instant, sauf changement imposé par les événements.
+        * Fais progresser l'histoire en fonction des actions du joueur.
         * Les événements sont : {{event_context}}
         - SINON :
         * Démarre dans un lieu crédible pour {{character_name}} au sein de {{world_context}} / {{lore_context}}.

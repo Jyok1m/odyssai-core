@@ -1445,7 +1445,6 @@ def llm_generate_immediate_event_summary(state: StateSchema) -> StateSchema:
 @traceable(run_type="chain", name="Retrieve past events for player")
 def get_event_context(state: StateSchema) -> StateSchema:
     character_id = state.get("character_id")
-    world_id = state.get("world_id", "")
 
     collection = Chroma(
         client=CHROMA_DB_CLIENT,
@@ -1453,10 +1452,25 @@ def get_event_context(state: StateSchema) -> StateSchema:
         collection_name=f"{character_id}_events",
     )
 
-    retriever = make_retriever(collection, {"world_id": world_id})
+    # Récupération directe avec .get()
+    result = collection.get()
+    
+    if not result["ids"]:
+        state["event_context"] = ""
+        return state
 
-    query = get_multilingual_rag_query(state, "story_events")
-    docs = retriever.invoke(query) or []
+    # Création des documents à partir du résultat
+    docs = []
+    for i, doc_id in enumerate(result["ids"]):
+        doc_content = result["documents"][i] if i < len(result["documents"]) else ""
+        doc_metadata = result["metadatas"][i] if i < len(result["metadatas"]) else {}
+        
+        # Création d'un objet similaire à Document pour maintenir la compatibilité
+        doc = type('Doc', (), {
+            'page_content': doc_content,
+            'metadata': doc_metadata
+        })()
+        docs.append(doc)
 
     # Tri par récence
     docs_sorted = sorted(

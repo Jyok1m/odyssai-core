@@ -492,7 +492,7 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
         * Make the story progress according to the player's actions.
         * The events are: {{event_context}}
         - ELSE:
-        * Start in a plausible location for {{character_name}} within {{world_context}} / {{lore_context}}.
+        * Start in a plausible location for {{character_name}} within {{world_context}}.
         * Give one immediate goal and a small, concrete obstacle.
         - Priority of sources: RECENT EVENTS > CHARACTER CONTEXT > WORLD/LORE. Use only what is needed.
 
@@ -530,14 +530,10 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
         --- CHARACTER CONTEXT ---
         {{character_context}}
 
-        --- SCENE STATE (authoritative; provide if available) ---
-        {{scene_state}}
-        (If empty, derive a minimal state from the latest event: location_id; timeframe; light/visibility; environment; exits[] with id/label/status; goals; resources; hazards/progress_clock; visited[].)
-
         ## OUTPUT FORMAT
         - One compact paragraph in plain text, present tense, addressing the player as "you".
         - Include a specific, immediate situation with concrete constraints (light, visibility, footing, noise, time/resource pressure).
-        - End with a clear, actionable question offering two realistic options tied to **present** affordances.
+        - End with a clear, actionable question offering a few realistic options tied to **present** affordances.
         - Do not recap beyond the latest event. No lists or meta commentary.
 
         !!! DO NOT INCLUDE MARKDOWN OR CODE FORMATTING !!!
@@ -565,7 +561,7 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
         * Fais progresser l'histoire en fonction des actions du joueur.
         * Les événements sont : {{event_context}}
         - SINON :
-        * Démarre dans un lieu crédible pour {{character_name}} au sein de {{world_context}} / {{lore_context}}.
+        * Démarre dans un lieu crédible pour {{character_name}} au sein de {{world_context}}.
         * Donne un objectif immédiat et un petit obstacle concret.
         - Priorité des sources : ÉVÉNEMENTS RÉCENTS > CONTEXTE PERSONNAGE > MONDE/LORE. N’utilise que le nécessaire.
 
@@ -602,15 +598,11 @@ def get_multilingual_llm_prompt(state: StateSchema, prompt_type: str, **kwargs) 
 
         --- CONTEXTE DES PERSONNAGES ---
         {{character_context}}
-
-        --- ÉTAT DE SCÈNE (prioritaire si fourni) ---
-        {{scene_state}}
-        (S’il est vide, dérive un état minimal depuis le dernier événement : location_id ; instant ; lumière/visibilité ; environnement ; issues[] avec id/libellé/statut ; objectifs ; ressources ; dangers/compteur ; visited[].)
-
+        
         ## FORMAT DE SORTIE
         - Un seul paragraphe concis, au présent, en t’adressant au joueur avec « tu ».
         - Inclure une situation immédiate avec contraintes concrètes (lumière, visibilité, appuis, bruit, pression temps/ressources).
-        - Terminer par une question claire offrant deux options réalistes liées aux **affordances présentes**.
+        - Terminer par une question claire offrant quelques options réalistes liées aux **affordances présentes**.
         - Ne récapitule pas au-delà du dernier événement. Pas de listes ni de méta.
 
         !!! N'INCLUS PAS DE MARKDOWN OU DE FORMATAGE DE CODE !!!

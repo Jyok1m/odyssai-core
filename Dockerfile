@@ -18,16 +18,20 @@ ENV PIP_NO_CACHE_DIR=1 \
 RUN micromamba create -y -n odyssai -f /tmp/environment.yml -c conda-forge
 RUN micromamba install -y -n odyssai -c conda-forge conda-pack
 
-# upgrade pip/setuptools/wheel pour éviter des build foireux
+# upgrade pip toolchain
 RUN micromamba run -n odyssai python -m pip install -U pip setuptools wheel
 
-# installe toutes les deps Python
+# deps Python (depuis requirements.txt)
 RUN micromamba run -n odyssai python -m pip install --no-cache-dir -r /tmp/requirements.txt
 
+# nettoyer
 RUN micromamba clean --all --yes && rm -rf /opt/conda/pkgs /home/mambauser/.cache
 
-RUN micromamba run -n odyssai conda-pack -n odyssai \
-      -o /tmp/conda_env.tar.gz --ignore-editable-packages
+# 🔴 FIX: packer par prefix (pas -n)
+RUN micromamba run -n odyssai conda-pack \
+      -p /opt/conda/envs/odyssai \
+      -o /tmp/conda_env.tar.gz \
+      --ignore-editable-packages
 
 # ---- Stage 2: runtime ----
 FROM python:3.12-slim AS runtime
@@ -50,9 +54,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=conda-builder /tmp/conda_env.tar.gz /tmp/conda_env.tar.gz
 RUN mkdir -p /opt/conda-env \
  && tar -xzf /tmp/conda_env.tar.gz -C /opt/conda-env \
- && rm /tmp/conda_env.tar.gz
+ && rm /tmp/conda_env.tar.gz \
+ # 🔴 FIX: réécrit les chemins/shebangs
+ && /opt/conda-env/bin/conda-unpack || true
 
-# scripts + code (et tes permissions existantes si besoin)
+# scripts + code
 COPY --chmod=0755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY --chmod=0755 start.sh /usr/local/bin/start.sh
 COPY . .

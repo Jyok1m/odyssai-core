@@ -4,7 +4,6 @@ channels:
 dependencies:
   - python=3.12
   - pip
-  # OS/runtime deps utiles (audio, certifs, etc.)
   - ffmpeg
   - libsndfile
   - portaudio

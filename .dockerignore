@@ -1,2 +1,9 @@
 .env
 .secrets
+.git
+.venv
+__pycache__/
+node_modules
+datasets
+models
+.huggingface

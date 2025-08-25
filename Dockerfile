@@ -38,7 +38,7 @@ COPY . .
 ENV PYTHONPATH=/app/src \
     BACKEND_PORT=9000 \
     PORT=9000 \
-    HF_HOME=/data/hf  # cache modèles HF hors image (volume)
+    HF_HOME=/data/hf
 
 EXPOSE 9000
 

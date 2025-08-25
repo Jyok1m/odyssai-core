@@ -6,18 +6,18 @@ flask==3.1.1
 flask-cors==6.0.1
 bcrypt==4.3.0
 
-# --- HTTP / Networking ---
+# --- HTTP and networking ---
 httpx==0.28.1
 aiohttp==3.12.14
 websockets==15.0.1
 requests==2.32.4
 
-# --- Serialization / Validation ---
+# --- Data serialization and validation ---
 orjson==3.11.0
 pydantic==2.11.7
 pydantic-settings==2.10.1
 
-# --- Data / ML utils ---
+# --- Machine Learning and AI ---
 tiktoken==0.9.0
 scikit-learn==1.7.1
 numpy==1.26.4
@@ -32,38 +32,40 @@ langchain-community==0.3.27
 langchain-core==0.3.70
 langchain-text-splitters==0.3.8
 langsmith==0.3.45
-langchain-huggingface==0.3.1
 
-# --- OpenAI & Google Cloud ---
+# --- OpenAI and Google Cloud ---
 openai==1.97.1
 google-cloud-texttospeech==2.27.0
 google-api-core==2.25.1
 google-auth==2.40.3
 
 # --- Audio processing ---
-librosa==0.10.2.post1
-pysoundfile==0.13.1
-python-sounddevice==0.5.2
+# NOTE: noms pip (pas conda)
+librosa==0.10.2.post1      # (0.11.0 n'existe pas sur PyPI)
+soundfile==0.13.1          # pysoundfile (conda) -> soundfile (pip)
+sounddevice==0.5.2         # python-sounddevice (conda) -> sounddevice (pip)
 pydub==0.25.1
 
-# --- Utilities ---
+# --- Utilities and tools ---
 click==8.2.1
 tqdm==4.67.1
 pyyaml==6.0.2
 python-dotenv==1.1.1
 mmh3==5.2.0
 rich==14.1.0
+rich-toolkit==0.14.9
+ipython==9.4.0
 
 # --- DB / misc ---
-pymongo==4.14.0
+pymongo==4.10.1
+dnspython==2.7.0
 pypika==0.48.9
 ormsgpack==1.10.0
-semver==3.0.4
 more-itertools==10.7.0
 networkx==3.5
 tomlkit==0.13.3
 
-# --- Telemetry (retire si inutile pour mincir) ---
+# --- Monitoring / Telemetry ---
 opentelemetry-api==1.36.0
 opentelemetry-exporter-otlp-proto-common==1.36.0
 opentelemetry-exporter-otlp-proto-grpc==1.36.0
@@ -71,42 +73,15 @@ opentelemetry-proto==1.36.0
 opentelemetry-sdk==1.36.0
 opentelemetry-semantic-conventions==0.57b0
 
-# --- HF / Transformers stack ---
+# --- HF / Transformers stack (ajoutées) ---
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.8.0+cpu
 transformers==4.55.4
 sentence-transformers==5.1.0
 safetensors==0.6.2
-onnxruntime==1.22.1
 
-# --- LangGraph ---
+# --- LangGraph (déjà en pip) ---
 langgraph==0.6.0
 langgraph-checkpoint==2.1.1
 langgraph-prebuilt==0.6.0
 langgraph-sdk==0.2.0
-
-# --- Extras CI/dev (facultatif) ---
-appdirs==1.4.4
-boltons==25.0.0
-cachecontrol==0.14.3
-click-default-group==1.2.4
-conda-lock==3.0.4
-crashtest==0.4.1
-distlib==0.4.0
-dulwich==0.22.8
-ensureconda==1.4.7
-fastjsonschema==2.21.2
-gitdb==4.0.12
-gitpython==3.1.45
-installer==0.7.0
-jaraco-classes==3.4.0
-jaraco-context==6.0.1
-jaraco-functools==4.2.1
-keyring==25.6.0
-pkginfo==1.12.1.2
-ruamel-yaml==0.18.14
-ruamel-yaml-clib==0.2.12
-smmap==5.0.2
-trove-classifiers==2025.8.6.13
-virtualenv==20.34.0
-xattr==1.2.0

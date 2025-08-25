@@ -1,5 +1,3 @@
-Ok donc réduit la taille exactement pour que ça marche
-
 FROM continuumio/miniconda3:latest
 
 SHELL ["/bin/bash", "-lc"]

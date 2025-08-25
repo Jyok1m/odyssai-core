@@ -1,3 +1,93 @@
+# --- Web frameworks and servers ---
+fastapi==0.115.9
+uvicorn==0.35.0
+gunicorn==23.0.0
+flask==3.1.1
+flask-cors==6.0.1
+bcrypt==4.3.0
+
+# --- HTTP / Networking ---
+httpx==0.28.1
+aiohttp==3.12.14
+websockets==15.0.1
+requests==2.32.4
+
+# --- Serialization / Validation ---
+orjson==3.11.0
+pydantic==2.11.7
+pydantic-settings==2.10.1
+
+# --- Data / ML utils ---
+tiktoken==0.9.0
+scikit-learn==1.7.1
+numpy==1.26.4
+scipy==1.16.0
+chromadb==1.0.15
+
+# --- LangChain ecosystem ---
+langchain==0.3.26
+langchain-openai==0.3.28
+langchain-chroma==0.2.5
+langchain-community==0.3.27
+langchain-core==0.3.70
+langchain-text-splitters==0.3.8
+langsmith==0.3.45
+langchain-huggingface==0.3.1
+
+# --- OpenAI & Google Cloud ---
+openai==1.97.1
+google-cloud-texttospeech==2.27.0
+google-api-core==2.25.1
+google-auth==2.40.3
+
+# --- Audio processing ---
+librosa==0.11.0
+pysoundfile==0.13.1
+python-sounddevice==0.5.2
+pydub==0.25.1
+
+# --- Utilities ---
+click==8.2.1
+tqdm==4.67.1
+pyyaml==6.0.2
+python-dotenv==1.1.1
+mmh3==5.2.0
+rich==14.1.0
+
+# --- DB / misc ---
+pymongo==4.14.0
+pypika==0.48.9
+ormsgpack==1.10.0
+semver==3.0.4
+more-itertools==10.7.0
+networkx==3.5
+tomlkit==0.13.3
+
+# --- Telemetry (facultatif : garde seulement si tu en as besoin) ---
+opentelemetry-api==1.36.0
+opentelemetry-exporter-otlp-proto-common==1.36.0
+opentelemetry-exporter-otlp-proto-grpc==1.36.0
+opentelemetry-proto==1.36.0
+opentelemetry-sdk==1.36.0
+opentelemetry-semantic-conventions==0.57b0
+
+# --- HF / Transformers stack ---
+# IMPORTANT : Torch CPU-only (évite les énormes roues CUDA)
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.8.0+cpu
+
+transformers==4.55.4
+sentence-transformers==5.1.0
+safetensors==0.6.2
+onnxruntime==1.22.1
+
+# --- LangGraph ---
+langgraph==0.6.0
+langgraph-checkpoint==2.1.1
+langgraph-prebuilt==0.6.0
+langgraph-sdk==0.2.0
+
+# --- Extras utiles à ton workflow (petits) ---
 appdirs==1.4.4
 boltons==25.0.0
 cachecontrol==0.14.3
@@ -15,35 +105,10 @@ jaraco-classes==3.4.0
 jaraco-context==6.0.1
 jaraco-functools==4.2.1
 keyring==25.6.0
-langchain-huggingface==0.3.1
-langgraph==0.6.0
-langgraph-checkpoint==2.1.1
-langgraph-prebuilt==0.6.0
-langgraph-sdk==0.2.0
-more-itertools==10.7.0
-networkx==3.5
-onnxruntime==1.22.1
-opentelemetry-api==1.36.0
-opentelemetry-exporter-otlp-proto-common==1.36.0
-opentelemetry-exporter-otlp-proto-grpc==1.36.0
-opentelemetry-proto==1.36.0
-opentelemetry-sdk==1.36.0
-opentelemetry-semantic-conventions==0.57b0
-ormsgpack==1.10.0
 pkginfo==1.12.1.2
-pydub==0.25.1
-pymongo==4.14.0
-pypika==0.48.9
-rich==14.1.0
 ruamel-yaml==0.18.14
 ruamel-yaml-clib==0.2.12
-safetensors==0.6.2
-semver==3.0.4
-sentence-transformers==5.1.0
 smmap==5.0.2
-tomlkit==0.13.3
-torch==2.8.0
-transformers==4.55.4
 trove-classifiers==2025.8.6.13
 virtualenv==20.34.0
 xattr==1.2.0

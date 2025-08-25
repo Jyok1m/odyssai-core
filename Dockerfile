@@ -23,11 +23,11 @@ RUN micromamba run -n odyssai python -m pip install --no-cache-dir -r /tmp/requi
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY start.sh /usr/local/bin/start.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh /usr/local/bin/start.sh
-COPY . .
+RUN install -m 0755 /usr/local/bin/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh && \
+    install -m 0755 /usr/local/bin/start.sh /usr/local/bin/start.sh
 
-# Reviens sur l’utilisateur léger
-USER mambauser
+    USER mambauser
+COPY . .
 
 ENV PYTHONPATH=/app/src BACKEND_PORT=9000 PORT=9000 HF_HOME=/data/hf
 EXPOSE 9000

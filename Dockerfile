@@ -9,9 +9,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ffmpeg libsndfile1 libportaudio2 ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Reviens sur l’utilisateur léger
-USER mambauser
-
 # (suite identique)
 COPY environment-export.yml /tmp/environment.yml
 COPY requirements.txt /tmp/requirements.txt
@@ -28,6 +25,9 @@ COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY start.sh /usr/local/bin/start.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh /usr/local/bin/start.sh
 COPY . .
+
+# Reviens sur l’utilisateur léger
+USER mambauser
 
 ENV PYTHONPATH=/app/src BACKEND_PORT=9000 PORT=9000 HF_HOME=/data/hf
 EXPOSE 9000

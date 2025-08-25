@@ -1,6 +1,6 @@
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_openai import OpenAIEmbeddings
-from odyssai_core.constants.llm_models import EMBEDDING_MODEL
+from langchain_huggingface import HuggingFaceEmbeddings
+# from langchain_openai import OpenAIEmbeddings
+# from odyssai_core.constants.llm_models import EMBEDDING_MODEL
 
 def get_embeddings_model():
     """

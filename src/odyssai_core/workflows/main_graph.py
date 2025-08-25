@@ -12,7 +12,7 @@ from datetime import datetime
 from typing_extensions import TypedDict, Literal, NotRequired
 
 # Langchain
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain_chroma import Chroma
 from langchain_core.prompts import PromptTemplate
 from langchain_core.documents import Document
@@ -26,7 +26,7 @@ from odyssai_core.utils.whisper import transcribe_audio
 from odyssai_core.utils.audio_session import recorder
 from odyssai_core.utils.prompt_truncation import truncate_structured_prompt
 from odyssai_core.config.settings import CHROMA_API_KEY, CHROMA_TENANT, CHROMA_DATABASE
-from odyssai_core.constants.llm_models import LLM_NAME, LLM_NAME_THINKING, EMBEDDING_MODEL
+from odyssai_core.constants.llm_models import LLM_NAME, LLM_NAME_THINKING
 
 # Static variables
 CHROMA_DB_CLIENT = chromadb.CloudClient(CHROMA_TENANT, CHROMA_DATABASE, CHROMA_API_KEY)

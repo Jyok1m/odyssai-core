@@ -41,7 +41,7 @@ google-api-core==2.25.1
 google-auth==2.40.3
 
 # --- Audio processing ---
-librosa==0.11.0
+librosa==0.10.2.post1
 pysoundfile==0.13.1
 python-sounddevice==0.5.2
 pydub==0.25.1
@@ -63,7 +63,7 @@ more-itertools==10.7.0
 networkx==3.5
 tomlkit==0.13.3
 
-# --- Telemetry (facultatif : garde seulement si tu en as besoin) ---
+# --- Telemetry (retire si inutile pour mincir) ---
 opentelemetry-api==1.36.0
 opentelemetry-exporter-otlp-proto-common==1.36.0
 opentelemetry-exporter-otlp-proto-grpc==1.36.0
@@ -72,10 +72,8 @@ opentelemetry-sdk==1.36.0
 opentelemetry-semantic-conventions==0.57b0
 
 # --- HF / Transformers stack ---
-# IMPORTANT : Torch CPU-only (évite les énormes roues CUDA)
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.8.0+cpu
-
 transformers==4.55.4
 sentence-transformers==5.1.0
 safetensors==0.6.2
@@ -87,7 +85,7 @@ langgraph-checkpoint==2.1.1
 langgraph-prebuilt==0.6.0
 langgraph-sdk==0.2.0
 
-# --- Extras utiles à ton workflow (petits) ---
+# --- Extras CI/dev (facultatif) ---
 appdirs==1.4.4
 boltons==25.0.0
 cachecontrol==0.14.3

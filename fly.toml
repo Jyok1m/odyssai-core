@@ -17,16 +17,21 @@ primary_region = 'cdg'
     soft_limit = 20
 
 [[vm]]
-  memory = '1gb'
-  cpu_kind = 'shared'
-  cpus = 1
+  memory = "4096mb"
+  cpu_kind = "shared"
+  cpus = 2
+  swap_size_mb = 1024
 
 [[http_service.checks]]
-  grace_period = "10s"
-  interval = "30s"
-  method = "GET"
-  timeout = "5s"
-  path = "/"
+  grace_period = "90s"
+  interval = "15s"
+  timeout   = "10s"
+  method    = "GET"
+  path      = "/"
+
+[env]
+  HF_HOME = "/data/hf/.cache/huggingface"
+  HF_HUB_DISABLE_TELEMETRY = "1"
 
 [mounts]
   source = "hf_cache"

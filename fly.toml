@@ -27,3 +27,7 @@ primary_region = 'cdg'
   method = "GET"
   timeout = "5s"
   path = "/"
+
+[mounts]
+  source = "hf_cache"
+  destination = "/data/hf"

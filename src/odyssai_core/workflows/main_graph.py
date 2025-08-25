@@ -20,6 +20,7 @@ from langgraph.graph import StateGraph, END
 from langsmith import traceable
 
 # Modules
+from odyssai_core.helpers.get_embedding_model import get_embeddings_model
 from odyssai_core.utils.google_tts import text_to_speech
 from odyssai_core.utils.whisper import transcribe_audio
 from odyssai_core.utils.audio_session import recorder
@@ -882,7 +883,7 @@ def ask_world_name(state: StateSchema) -> StateSchema:
 def check_world_exists(state: StateSchema) -> StateSchema:
     db_collection = Chroma(
         client=CHROMA_DB_CLIENT,
-        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        embedding_function=get_embeddings_model(),
         collection_name="worlds",
     )
     result = db_collection.get(where={"world_name": state.get("world_name", "")})
@@ -924,7 +925,7 @@ def check_world_exists(state: StateSchema) -> StateSchema:
 def check_world_exists_by_id(state: StateSchema) -> StateSchema:
     db_collection = Chroma(
         client=CHROMA_DB_CLIENT,
-        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        embedding_function=get_embeddings_model(),
         collection_name="worlds",
     )
     result = db_collection.get(ids=[state.get("world_id", "")])
@@ -941,7 +942,7 @@ def check_world_exists_by_id(state: StateSchema) -> StateSchema:
 def check_character_exists_by_id(state: StateSchema) -> StateSchema:
     db_collection = Chroma(
         client=CHROMA_DB_CLIENT,
-        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        embedding_function=get_embeddings_model(),
         collection_name="characters",
     )
     result = db_collection.get(ids=[state.get("character_id", "")])
@@ -1052,7 +1053,7 @@ def ask_new_character_name(state: StateSchema) -> StateSchema:
 def check_character_exists(state: StateSchema) -> StateSchema:
     db_collection = Chroma(
         client=CHROMA_DB_CLIENT,
-        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        embedding_function=get_embeddings_model(),
         collection_name="characters",
     )
     result = db_collection.get(
@@ -1166,7 +1167,7 @@ def llm_generate_character_data(state: StateSchema) -> StateSchema:
 def get_world_context(state: StateSchema) -> StateSchema:
     db_collection = Chroma(
         client=CHROMA_DB_CLIENT,
-        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        embedding_function=get_embeddings_model(),
         collection_name="worlds",
     )
     result = db_collection.get(ids=[state.get("world_id", "")])
@@ -1183,7 +1184,7 @@ def get_world_context(state: StateSchema) -> StateSchema:
 def get_all_worlds(lang) -> list[dict]:
     db_collection = Chroma(
         client=CHROMA_DB_CLIENT,
-        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        embedding_function=get_embeddings_model(),
         collection_name="worlds",
     )
 
@@ -1228,7 +1229,7 @@ def get_all_worlds(lang) -> list[dict]:
 def get_lore_context(state: StateSchema) -> StateSchema:
     db_collection = Chroma(
         client=CHROMA_DB_CLIENT,
-        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        embedding_function=get_embeddings_model(),
         collection_name="lores",
     )
 
@@ -1251,7 +1252,7 @@ def get_lore_context(state: StateSchema) -> StateSchema:
 def get_character_context(state: StateSchema) -> StateSchema:
     db_collection = Chroma(
         client=CHROMA_DB_CLIENT,
-        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        embedding_function=get_embeddings_model(),
         collection_name="characters",
     )
     result = db_collection.get(where={"world_id": state.get("world_id", "")})
@@ -1383,7 +1384,7 @@ def llm_generate_immediate_event_summary(state: StateSchema) -> StateSchema:
     character_id = state.get("character_id")
     collection = Chroma(
         client=CHROMA_DB_CLIENT,
-        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        embedding_function=get_embeddings_model(),
         collection_name=f"{character_id}_events",
     )
 
@@ -1412,7 +1413,7 @@ def get_event_context(state: StateSchema) -> StateSchema:
 
     collection = Chroma(
         client=CHROMA_DB_CLIENT,
-        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        embedding_function=get_embeddings_model(),
         collection_name=f"{character_id}_events",
     )
 
@@ -1480,7 +1481,7 @@ def llm_generate_next_prompt(state: StateSchema) -> StateSchema:
     character_id = state.get("character_id")
     collection = Chroma(
         client=CHROMA_DB_CLIENT,
-        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        embedding_function=get_embeddings_model(),
         collection_name=f"{character_id}_events",
     )
 
@@ -1510,7 +1511,7 @@ def record_player_response(state: StateSchema) -> StateSchema:
     character_id = state.get("character_id")
     collection = Chroma(
         client=CHROMA_DB_CLIENT,
-        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        embedding_function=get_embeddings_model(),
         collection_name=f"{character_id}_events",
     )
     doc = Document(
@@ -1567,7 +1568,7 @@ def save_documents_to_chroma(state: StateSchema) -> StateSchema:
 
     db_collection = Chroma(
         client=CHROMA_DB_CLIENT,
-        embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+        embedding_function=get_embeddings_model(),
         collection_name=collection_name,
     )
 

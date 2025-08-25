@@ -14,7 +14,7 @@ COPY environment-export.yml /tmp/environment.yml
 RUN mamba env create -n odyssai -f /tmp/environment.yml --override-channels -c conda-forge \
     && conda clean -afy
 
-COPY requirements-export.txt /tmp/requirements.txt
+COPY requirements.txt /tmp/requirements.txt
 RUN conda run -n odyssai pip install --no-cache-dir -r /tmp/requirements.txt
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh

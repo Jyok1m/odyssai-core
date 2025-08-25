@@ -1,9 +1,33 @@
+# VCS
+.git
+.gitignore
+
+# Secrets / Config
 .env
 .secrets
-.git
+
+# Python
 .venv
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+
+# Node / Front
 node_modules
+dist
+build
+
+# Data & Models
 datasets
 models
 .huggingface
+.cache
+tmp
+*.ckpt
+
+# System / OS
+.DS_Store
+.vscode
+.idea

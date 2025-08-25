@@ -29,10 +29,10 @@ primary_region = 'cdg'
   method    = "GET"
   path      = "/"
 
-[env]
-  HF_HOME = "/data/hf/.cache/huggingface"
-  HF_HUB_DISABLE_TELEMETRY = "1"
-
 [mounts]
   source = "hf_cache"
   destination = "/data/hf"
+
+[env]
+  HF_HOME = "/data/hf/.cache/huggingface"
+  TRANSFORMERS_CACHE = "/data/hf/.cache/huggingface"

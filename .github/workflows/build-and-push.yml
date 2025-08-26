@@ -10,8 +10,6 @@ on:
       - "Dockerfile"
       - "pyproject.toml"
       - "fly.toml"
-  pull_request:
-    branches: [main]
 
 env:
   REGISTRY: ghcr.io

@@ -31,6 +31,7 @@ langchain-chroma==0.2.5
 langchain-community==0.3.27
 langchain-core==0.3.70
 langchain-text-splitters==0.3.8
+langchain-huggingface==0.3.1
 langsmith==0.3.45
 
 # --- OpenAI and Google Cloud ---

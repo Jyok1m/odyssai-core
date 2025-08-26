@@ -1,25 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "Starting Odyssai Core..."
-echo "PORT=${PORT:-9000} ODYSSAI_APP_TYPE=${ODYSSAI_APP_TYPE:-WSGI}"
+# Ajoute l'env packé au PATH (béton)
+export PATH="/opt/conda-env/bin:${PATH}"
 
-# Diagnostics
+echo "Starting Odyssai Core (Flask WSGI)…"
+echo "PORT=${PORT:-9000}"
 echo "whoami=$(whoami) pwd=$(pwd)"
 echo "PATH=$PATH"
-command -v python || true
-python -V || true
-command -v gunicorn || true
+/opt/conda-env/bin/python -V || true
+command -v /opt/conda-env/bin/gunicorn || true
 
-# Par défaut on part sur WSGI (Flask) vu ton import '...app:app'
+# Params
 : "${PORT:=9000}"
 : "${WEB_THREADS:=4}"
 : "${WEB_TIMEOUT:=180}"
-: "${APP_MODULE:=src.odyssai_core.app:app}"   # Flask WSGI
+# ⚠️ Mets le bon module Flask :
+: "${APP_MODULE:=src.odyssai_core.app:app}"   # module:path_to_flask_app
 : "${GUNICORN_CONF:=gunicorn.conf.py}"
 
 # Lancement
-exec gunicorn "${APP_MODULE}" \
+exec /opt/conda-env/bin/gunicorn "${APP_MODULE}" \
   -c "${GUNICORN_CONF}" \
   --worker-class gthread \
   --threads "${WEB_THREADS}" \

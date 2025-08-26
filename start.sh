@@ -1,19 +1,27 @@
-#!/bin/bash
-set -Eeuo pipefail
+#!/usr/bin/env bash
+set -euo pipefail
 
 echo "Starting Odyssai Core..."
-echo "PORT=${PORT:-9000} ODYSSAI_APP_TYPE=${ODYSSAI_APP_TYPE:-ASGI}"
+echo "PORT=${PORT:-9000} ODYSSAI_APP_TYPE=${ODYSSAI_APP_TYPE:-WSGI}"
 
-# (Optionnel) Détection rapide pour afficher le type
-conda run --no-capture-output -n odyssai python - <<'PY'
-from src.odyssai_core.app import app
-print("App imported OK.")
-PY
+# Diagnostics utiles
+echo "whoami=$(whoami) pwd=$(pwd)"
+echo "PATH=$PATH"
+command -v python || true
+python -V || true
+command -v gunicorn || true
 
-# Lancer avec la conf unique
-exec conda run --no-capture-output -n odyssai gunicorn \
-  -c gunicorn.conf.py \
+# Par défaut on part sur WSGI (Flask) vu ton import '...app:app'
+: "${PORT:=9000}"
+: "${WEB_THREADS:=4}"
+: "${WEB_TIMEOUT:=180}"
+: "${APP_MODULE:=src.odyssai_core.app:app}"   # Flask WSGI
+: "${GUNICORN_CONF:=gunicorn.conf.py}"
+
+# Lancement
+exec gunicorn "${APP_MODULE}" \
+  -c "${GUNICORN_CONF}" \
   --worker-class gthread \
-  --threads ${WEB_THREADS:-4} \
-  --timeout ${WEB_TIMEOUT:-180} \
-  src.odyssai_core.app:app
+  --threads "${WEB_THREADS}" \
+  --timeout "${WEB_TIMEOUT}" \
+  --bind "0.0.0.0:${PORT}"

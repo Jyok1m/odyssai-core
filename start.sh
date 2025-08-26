@@ -4,7 +4,7 @@ set -euo pipefail
 echo "Starting Odyssai Core..."
 echo "PORT=${PORT:-9000} ODYSSAI_APP_TYPE=${ODYSSAI_APP_TYPE:-WSGI}"
 
-# Diagnostics utiles
+# Diagnostics
 echo "whoami=$(whoami) pwd=$(pwd)"
 echo "PATH=$PATH"
 command -v python || true

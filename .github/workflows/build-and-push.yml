@@ -10,6 +10,7 @@ on:
       - "Dockerfile"
       - "pyproject.toml"
       - "fly.toml"
+      - "start.sh"
 
 env:
   REGISTRY: ghcr.io

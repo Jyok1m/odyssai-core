@@ -17,7 +17,7 @@ ENV PIP_NO_CACHE_DIR=1 \
     PIP_PREFER_BINARY=1
 
 RUN micromamba create -y -n odyssai -f /tmp/environment.yml -c conda-forge
-RUN micromamba install -y -n odyssai -c conda-forge conda-pack certifi  # ← ajoute certifi dans l'env
+RUN micromamba install -y -n odyssai -c conda-forge conda-pack certifi  # ← ajoute certifi dans env
 
 # upgrade pip toolchain
 RUN micromamba run -n odyssai python -m pip install -U pip setuptools wheel

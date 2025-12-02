@@ -8,13 +8,11 @@
 # Pipeline GitLab CI/CD pour odyssai-core
 stages:
   - build
-  # - deploy
+  - deploy
 
 variables:
   IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   LATEST_TAG: $CI_REGISTRY_IMAGE:latest
-  # DOCKER_DRIVER: overlay2
-  # DOCKER_BUILDKIT: 1
 
 build:
   stage: build
@@ -29,15 +27,16 @@ build:
     - docker push $IMAGE_TAG
     - docker push $LATEST_TAG
   tags: ["ovh"]
-# deploy:
-#   stage: deploy
-#   needs: ["build"]
-#   <<: *docker_template
-#   rules:
-#     - if: $CI_COMMIT_BRANCH == "main"
-#   script:
-#     - cd /home/debian/server/apps/odyssai
-#     - docker compose -f docker-compose.prod.yml pull odyssai-backend
-#     - docker compose -f docker-compose.prod.yml up odyssai-backend -d --force-recreate
-#   tags: ["ovh"]
-#   when: manual
+
+deploy:
+  stage: deploy
+  needs: ["build"]
+  <<: *docker_template
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  script:
+    - cd /home/debian/server/apps/odyssai
+    - docker compose -f docker-compose.prod.yml pull odyssai-core
+    - docker compose -f docker-compose.prod.yml up odyssai-core -d --force-recreate
+  tags: ["ovh"]
+  when: manual

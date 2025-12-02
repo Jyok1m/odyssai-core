@@ -21,14 +21,6 @@ build:
   <<: *docker_template
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
-      changes:
-        - "src/**/*"
-        - "requirements*.txt"
-        - "environment*.yml"
-        - "Dockerfile"
-        - "pyproject.toml"
-        - "fly.toml"
-        - "start.sh"
   services:
     - docker:24-dind
   script:

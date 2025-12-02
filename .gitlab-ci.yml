@@ -1,0 +1,51 @@
+.docker_template: &docker_template
+  before_script:
+    - set -euo pipefail
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin registry.gitlab.com
+  after_script: ["docker logout registry.gitlab.com"]
+  tags: ["ovh"]
+
+# Pipeline GitLab CI/CD pour odyssai-core
+stages:
+  - build
+  # - deploy
+
+variables:
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  LATEST_TAG: $CI_REGISTRY_IMAGE:latest
+  # DOCKER_DRIVER: overlay2
+  # DOCKER_BUILDKIT: 1
+
+build:
+  stage: build
+  <<: *docker_template
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - "src/**/*"
+        - "requirements*.txt"
+        - "environment*.yml"
+        - "Dockerfile"
+        - "pyproject.toml"
+        - "fly.toml"
+        - "start.sh"
+  services:
+    - docker:24-dind
+  script:
+    - docker build --cache-from $LATEST_TAG -t $IMAGE_TAG .
+    - docker tag $IMAGE_TAG $LATEST_TAG
+    - docker push $IMAGE_TAG
+    - docker push $LATEST_TAG
+  tags: ["ovh"]
+# deploy:
+#   stage: deploy
+#   needs: ["build"]
+#   <<: *docker_template
+#   rules:
+#     - if: $CI_COMMIT_BRANCH == "main"
+#   script:
+#     - cd /home/debian/server/apps/odyssai
+#     - docker compose -f docker-compose.prod.yml pull odyssai-backend
+#     - docker compose -f docker-compose.prod.yml up odyssai-backend -d --force-recreate
+#   tags: ["ovh"]
+#   when: manual

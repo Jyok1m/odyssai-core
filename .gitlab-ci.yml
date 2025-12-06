@@ -36,7 +36,7 @@ deploy:
     - if: $CI_COMMIT_BRANCH == "main"
   script:
     - cd /home/debian/server/apps/odyssai
-    - docker compose -f docker-compose.prod.yml pull odyssai-core
-    - docker compose -f docker-compose.prod.yml up odyssai-core -d --force-recreate
+    - docker compose pull odyssai-core
+    - docker compose up odyssai-core -d --force-recreate
   tags: ["ovh"]
   when: manual

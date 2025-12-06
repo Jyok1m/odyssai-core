@@ -1558,7 +1558,10 @@ def save_documents_to_chroma(state: StateSchema) -> StateSchema:
         ids = [str(uuid4()) for _ in documents_to_save]
         collection_name = "lores"
     elif state.get("active_step") == "character_creation":
-        ids = [str(uuid4()) for _ in documents_to_save]
+        # Use the character_id from state if available, otherwise generate new UUID
+        character_id = state.get("character_id") or str(uuid4())
+        ids = [character_id]
+        state["character_id"] = character_id
         collection_name = "characters"
     else:
         ids = [str(uuid4()) for _ in documents_to_save]

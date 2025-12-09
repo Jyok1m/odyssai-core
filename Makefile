@@ -50,13 +50,13 @@ cli: ## Start in cli mode
 
 dev: ## Start in development mode
 	@echo "$(BLUE)🚀 Starting in development mode...$(NC)"
-	@echo "$(YELLOW)Port: $(PORT)$(NC)"
-	@echo "$(YELLOW)URL: http://localhost:$(PORT)$(NC)"
+	@echo "$(YELLOW)Port: 9001$(NC)"
+	@echo "$(YELLOW)URL: http://localhost:9001$(NC)"
 	@echo ""
 	@eval "$$(conda shell.bash hook)" && \
 	conda activate $(CONDA_ENV) && \
 	export PYTHONPATH=./src && \
-	export BACKEND_PORT=$(PORT) && \
+	export BACKEND_PORT=9001 && \
 	python src/odyssai_core/app.py
 
 prod: ## Start in production mode with Gunicorn

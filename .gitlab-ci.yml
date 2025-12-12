@@ -3,7 +3,8 @@
     - set -euo pipefail
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin registry.gitlab.com
   after_script: ["docker logout registry.gitlab.com"]
-  tags: ["ovh"]
+  tags: 
+    - "ovh-runner"
 
 # Pipeline GitLab CI/CD pour odyssai-core
 stages:
@@ -19,15 +20,15 @@ build:
   <<: *docker_template
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
-  services:
-    - docker:24-dind
+  # services:
+  #   - docker:24-dind
   script:
     - docker build --cache-from $LATEST_TAG -t $IMAGE_TAG .
     - docker tag $IMAGE_TAG $LATEST_TAG
     - docker push $IMAGE_TAG
     - docker push $LATEST_TAG
-  tags: ["ovh"]
-
+  tags:
+    - "ovh-runner"
 deploy:
   stage: deploy
   needs: ["build"]
@@ -38,5 +39,6 @@ deploy:
     - cd /home/debian/server/apps/odyssai
     - docker compose pull odyssai-core
     - docker compose up odyssai-core -d --force-recreate
-  tags: ["ovh"]
+  tags:
+    - "ovh-runner"
   when: manual

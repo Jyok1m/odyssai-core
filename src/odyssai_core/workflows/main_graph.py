@@ -1,4 +1,5 @@
 # Libs
+import os
 import chromadb
 import random
 import ast
@@ -33,6 +34,12 @@ CHROMA_DB_CLIENT = chromadb.CloudClient(CHROMA_TENANT, CHROMA_DATABASE, CHROMA_A
 TERMINAL_WIDTH = shutil.get_terminal_size((80, 20)).columns
 VOICE_MODE_ENABLED = False
 MAIN_TEMP = 1
+
+# LLM Server Configuration (llama.cpp OpenAI-compatible endpoint)
+LLM_BASE_URL = "http://llama-server:8080/v1"
+
+if os.getenv("ENV") == "dev":
+    LLM_BASE_URL = "https://chat.odyssai.app/v1"
 
 # ------------------------------------------------------------------ #
 #                                SCHEMA                              #
@@ -1002,10 +1009,11 @@ def llm_generate_world_data(state: StateSchema) -> StateSchema:
     )
     truncated_prompt = truncate_structured_prompt(formatted_prompt)
     llm_model = ChatOpenAI(
-        model=LLM_NAME,
         temperature=MAIN_TEMP,
         streaming=False,
         max_retries=2,
+        base_url=LLM_BASE_URL,
+        api_key="not-needed",
     )
 
     raw_output = llm_model.invoke(truncated_prompt).content
@@ -1141,10 +1149,11 @@ def llm_generate_character_data(state: StateSchema) -> StateSchema:
     )
     truncated_prompt = truncate_structured_prompt(formatted_prompt)
     llm_model = ChatOpenAI(
-        model=LLM_NAME,
         temperature=MAIN_TEMP,
         streaming=False,
         max_retries=2,
+        base_url=LLM_BASE_URL,
+        api_key="not-needed",
     )
     raw_output = llm_model.invoke(truncated_prompt).content
     llm_response = (
@@ -1286,10 +1295,11 @@ def llm_generate_lore_data(state: StateSchema) -> StateSchema:
     truncated_prompt = truncate_structured_prompt(formatted_prompt)
 
     llm_model = ChatOpenAI(
-        model=LLM_NAME_THINKING,
         temperature=MAIN_TEMP,
         streaming=False,
         max_retries=2,
+        base_url=LLM_BASE_URL,
+        api_key="not-needed",
     )
 
     raw_output = llm_model.invoke(truncated_prompt).content
@@ -1331,10 +1341,11 @@ def llm_generate_world_summary(state: StateSchema) -> StateSchema:
     truncated_prompt = truncate_structured_prompt(formatted_prompt)
 
     llm_model = ChatOpenAI(
-        model=LLM_NAME,
         temperature=MAIN_TEMP,
         streaming=False,
         max_retries=2,
+        base_url=LLM_BASE_URL,
+        api_key="not-needed",
     )
 
     raw_output = llm_model.invoke(truncated_prompt).content
@@ -1363,10 +1374,11 @@ def llm_generate_immediate_event_summary(state: StateSchema) -> StateSchema:
     truncated_prompt = truncate_structured_prompt(formatted_prompt)
 
     llm_model = ChatOpenAI(
-        model=LLM_NAME,
         temperature=MAIN_TEMP,
         streaming=False,
         max_retries=2,
+        base_url=LLM_BASE_URL,
+        api_key="not-needed",
     )
 
     raw_output = llm_model.invoke(truncated_prompt).content
@@ -1471,7 +1483,11 @@ def llm_generate_next_prompt(state: StateSchema) -> StateSchema:
         character_name=state.get("character_name", ""),
     )
 
-    llm_model = ChatOpenAI(model=LLM_NAME_THINKING, temperature=MAIN_TEMP)
+    llm_model = ChatOpenAI(
+        temperature=MAIN_TEMP,
+        base_url=LLM_BASE_URL,
+        api_key="not-needed",
+    )
     result = llm_model.invoke(truncate_structured_prompt(formatted_prompt)).content
     result = result.strip() if isinstance(result, str) else str(result)
 
